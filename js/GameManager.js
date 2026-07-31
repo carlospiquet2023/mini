@@ -35,6 +35,9 @@ export default class GameManager {
   #selectPacman;
   #selectTetris;
   #selectRunner;
+  #openGamesMenuBtn;
+  #closeGamesModalBtn;
+  #gamesModalOverlay;
   #statusLbl;
   #statusVal;
 
@@ -95,6 +98,9 @@ export default class GameManager {
     this.#selectPacman = document.getElementById('select-pacman');
     this.#selectTetris = document.getElementById('select-tetris');
     this.#selectRunner = document.getElementById('select-runner');
+    this.#openGamesMenuBtn = document.getElementById('open-games-menu');
+    this.#closeGamesModalBtn = document.getElementById('close-games-modal');
+    this.#gamesModalOverlay = document.getElementById('games-modal');
     this.#statusLbl = document.getElementById('status-lbl');
     this.#statusVal = document.getElementById('status-val');
   }
@@ -270,11 +276,24 @@ export default class GameManager {
   #bindSelectors() {
     const signal = this.#abortController.signal;
 
-    this.#selectWorm.addEventListener('click', () => this.#switchGame('worm'), { signal });
-    this.#selectSpace.addEventListener('click', () => this.#switchGame('space'), { signal });
-    this.#selectPacman.addEventListener('click', () => this.#switchGame('pacman'), { signal });
-    this.#selectTetris.addEventListener('click', () => this.#switchGame('tetris'), { signal });
-    this.#selectRunner.addEventListener('click', () => this.#switchGame('runner'), { signal });
+    this.#openGamesMenuBtn?.addEventListener('click', () => {
+      this.#gamesModalOverlay?.classList.add('open');
+    }, { signal });
+
+    this.#closeGamesModalBtn?.addEventListener('click', () => {
+      this.#gamesModalOverlay?.classList.remove('open');
+    }, { signal });
+
+    const closeAndSwitch = (game) => {
+      this.#gamesModalOverlay?.classList.remove('open');
+      this.#switchGame(game);
+    };
+
+    this.#selectWorm?.addEventListener('click', () => closeAndSwitch('worm'), { signal });
+    this.#selectSpace?.addEventListener('click', () => closeAndSwitch('space'), { signal });
+    this.#selectPacman?.addEventListener('click', () => closeAndSwitch('pacman'), { signal });
+    this.#selectTetris?.addEventListener('click', () => closeAndSwitch('tetris'), { signal });
+    this.#selectRunner?.addEventListener('click', () => closeAndSwitch('runner'), { signal });
 
     // Back button
     this.#backBtn.addEventListener('click', () => this.#switchGame('balls'), { signal });

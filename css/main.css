@@ -738,4 +738,181 @@
       padding: 16px 28px 12px;
     }
   }
+
+  /* ===========================================
+     MORE GAMES BUTTON (+ JOGOS) & MODAL
+     =========================================== */
+
+  .more-games-pill-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #ffffff;
+    border: 2px solid #b45309;
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 
+      0 4px 10px rgba(0, 0, 0, 0.3),
+      inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .more-games-pill-btn:hover {
+    transform: translateY(-2px) scale(1.04);
+    box-shadow: 
+      0 6px 14px rgba(245, 158, 11, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+  }
+
+  .more-games-pill-btn:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Modal Overlay */
+  .games-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s ease;
+    padding: 12px;
+  }
+
+  .games-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .games-modal-content {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    border: 2px solid rgba(59, 130, 246, 0.6);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 320px;
+    padding: 16px;
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.6),
+      0 0 20px rgba(59, 130, 246, 0.3);
+    transform: scale(0.9);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .games-modal-overlay.open .games-modal-content {
+    transform: scale(1);
+  }
+
+  .games-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .games-modal-title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #38bdf8;
+    letter-spacing: 0.5px;
+  }
+
+  .games-modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #94a3b8;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .games-modal-close:hover {
+    background: #ef4444;
+    color: #ffffff;
+  }
+
+  .games-grid-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+
+  .game-card-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s, transform 0.15s, border-color 0.2s;
+  }
+
+  .game-card-btn:hover {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #38bdf8;
+    transform: translateX(4px);
+  }
+
+  .game-card-icon {
+    font-size: 24px;
+    line-height: 1;
+    background: rgba(0, 0, 0, 0.3);
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .game-card-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .game-card-name {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #ffffff;
+  }
+
+  .game-card-desc {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    color: #94a3b8;
+  }
 }

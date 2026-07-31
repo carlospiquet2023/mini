@@ -58,6 +58,57 @@
         <!-- Screen Flash (theme transition effect) -->
         <div class="screen-flash" id="screen-flash"></div>
 
+        <!-- Modal Overlay for Selecting Mini-Games -->
+        <div class="games-modal-overlay" id="games-modal">
+          <div class="games-modal-content">
+            <div class="games-modal-header">
+              <span class="games-modal-title">🎮 SELEÇÃO DE JOGOS</span>
+              <button class="games-modal-close" id="close-games-modal" aria-label="Fechar menu">✕</button>
+            </div>
+            <div class="games-grid-menu">
+              <button class="game-card-btn" id="select-worm">
+                <span class="game-card-icon">🐛</span>
+                <div class="game-card-info">
+                  <span class="game-card-name">Minhoca Voraz</span>
+                  <span class="game-card-desc">Jogo clássico da cobra</span>
+                </div>
+              </button>
+
+              <button class="game-card-btn" id="select-space">
+                <span class="game-card-icon">🚀</span>
+                <div class="game-card-info">
+                  <span class="game-card-name">Nave na Galáxia</span>
+                  <span class="game-card-desc">Shooter com 4 Chefões</span>
+                </div>
+              </button>
+
+              <button class="game-card-btn" id="select-pacman">
+                <span class="game-card-icon">🟡</span>
+                <div class="game-card-info">
+                  <span class="game-card-name">Pac-Man Retro</span>
+                  <span class="game-card-desc">Labirinto Arcade Fantasma</span>
+                </div>
+              </button>
+
+              <button class="game-card-btn" id="select-tetris">
+                <span class="game-card-icon">🧱</span>
+                <div class="game-card-info">
+                  <span class="game-card-name">Tetris Classic</span>
+                  <span class="game-card-desc">Jogo dos Blocos</span>
+                </div>
+              </button>
+
+              <button class="game-card-btn" id="select-runner">
+                <span class="game-card-icon">🏃</span>
+                <div class="game-card-info">
+                  <span class="game-card-name">Super Pulo</span>
+                  <span class="game-card-desc">Corredor de Obstáculos</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -116,22 +167,10 @@
           </div>
         </div>
 
-        <!-- Game Selectors (Center - 2x2 Matrix Grid) -->
+        <!-- Game Selector (+ JOGOS single button) -->
         <div class="selector-group">
-          <button id="select-worm" class="selector-btn" aria-label="Jogo da Minhoca" title="Minhoca Voraz">
-            <span class="selector-icon">🐛</span>
-          </button>
-          <button id="select-space" class="selector-btn" aria-label="Nave na Galáxia" title="Nave na Galáxia">
-            <span class="selector-icon">🚀</span>
-          </button>
-          <button id="select-pacman" class="selector-btn" aria-label="Pac-Man" title="Pac-Man Retro">
-            <span class="selector-icon">🟡</span>
-          </button>
-          <button id="select-tetris" class="selector-btn" aria-label="Tetris" title="Tetris Block Game">
-            <span class="selector-icon">🧱</span>
-          </button>
-          <button id="select-runner" class="selector-btn" aria-label="Super Pulo / Runner" title="Super Pulo Obstáculos">
-            <span class="selector-icon">🏃</span>
+          <button id="open-games-menu" class="more-games-pill-btn" aria-label="Abrir lista de jogos" title="Abrir Menu de Jogos">
+            🎮 + JOGOS
           </button>
         </div>
 
