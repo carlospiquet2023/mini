@@ -577,107 +577,199 @@ export default class MermaidGame {
     this.#ctx.rotate(this.#player.tilt);
 
     const tailWave = Math.sin(this.#worldTime * 5.5);
-    const hairWave = Math.sin(this.#worldTime * 3.2);
+    const hairWave1 = Math.sin(this.#worldTime * 3.5);
+    const hairWave2 = Math.cos(this.#worldTime * 2.8);
+    const swim = Math.sin(this.#worldTime * 6.0);
 
-    // 1. ELEGANT MERMAID TAIL (Cauda de Sereia Iridescente)
-    const tailGrad = this.#ctx.createLinearGradient(-45, 0, 10, 0);
+    // 1. BACK HAIR LOCKS (Cabelos de Trás em Camadas)
+    const backHairGrad = this.#ctx.createLinearGradient(-35, -35, 10, 0);
+    backHairGrad.addColorStop(0, '#3b0764');
+    backHairGrad.addColorStop(0.5, '#7e22ce');
+    backHairGrad.addColorStop(1, '#c084fc');
+    this.#ctx.fillStyle = backHairGrad;
+
+    this.#ctx.beginPath();
+    this.#ctx.moveTo(10, -25);
+    this.#ctx.bezierCurveTo(-10, -32 + hairWave1 * 4, -30, -25 + hairWave2 * 5, -42, -10 + hairWave1 * 4);
+    this.#ctx.bezierCurveTo(-30, -2, -15, -8, 5, -12);
+    this.#ctx.closePath();
+    this.#ctx.fill();
+
+    // 2. MAJESTIC TAIL (Cauda de Sereia Iridescente)
+    const tailGrad = this.#ctx.createLinearGradient(-55, 0, 15, 0);
     tailGrad.addColorStop(0, '#0284c7');
-    tailGrad.addColorStop(0.4, '#0d9488');
-    tailGrad.addColorStop(0.8, '#2dd4bf');
+    tailGrad.addColorStop(0.35, '#0d9488');
+    tailGrad.addColorStop(0.7, '#2dd4bf');
     tailGrad.addColorStop(1, '#a7f3d0');
     this.#ctx.fillStyle = tailGrad;
-    this.#ctx.shadowBlur = 12;
+    this.#ctx.shadowBlur = 14;
     this.#ctx.shadowColor = '#2dd4bf';
 
     this.#ctx.beginPath();
-    this.#ctx.moveTo(5, 4);
-    this.#ctx.bezierCurveTo(-15, 12, -30, 15, -45, 8 + tailWave * 4);
-    this.#ctx.bezierCurveTo(-35, -4 + tailWave * 2, -20, -8, 5, -4);
+    this.#ctx.moveTo(10, 5);
+    this.#ctx.bezierCurveTo(-15, 15, -35, 18, -55, 10 + tailWave * 5);
+    this.#ctx.bezierCurveTo(-42, -5 + tailWave * 2, -25, -10, 10, -5);
     this.#ctx.closePath();
     this.#ctx.fill();
 
-    // Caudal Fin (Nadadeira Dupla Translúcida)
-    this.#ctx.fillStyle = 'rgba(45, 212, 191, 0.85)';
+    // Scales Highlight Overlay
+    this.#ctx.save();
+    this.#ctx.globalAlpha = 0.35;
+    this.#ctx.strokeStyle = '#ffffff';
+    this.#ctx.lineWidth = 1;
+    for (let col = 0; col < 5; col++) {
+      const sx = -5 - col * 9;
+      const sy = 2 - col * 1.5;
+      this.#ctx.beginPath();
+      this.#ctx.arc(sx, sy, 4.5, 0.2, Math.PI - 0.2);
+      this.#ctx.stroke();
+    }
+    this.#ctx.restore();
+
+    // Translucent Fairy Caudal Fins (Nadadeiras Duplas de Fada)
+    const finGrad = this.#ctx.createLinearGradient(-75, -25, -45, 35);
+    finGrad.addColorStop(0, 'rgba(167, 243, 208, 0.9)');
+    finGrad.addColorStop(0.5, 'rgba(45, 212, 191, 0.85)');
+    finGrad.addColorStop(1, 'rgba(2, 132, 199, 0.8)');
+    this.#ctx.fillStyle = finGrad;
+
+    // Upper Fin
     this.#ctx.beginPath();
-    this.#ctx.moveTo(-45, 8 + tailWave * 4);
-    this.#ctx.bezierCurveTo(-58, -4 + tailWave * 6, -65, -18, -55, -22);
-    this.#ctx.bezierCurveTo(-45, -12, -42, -2, -45, 8 + tailWave * 4);
-    this.#ctx.bezierCurveTo(-58, 20 + tailWave * 6, -65, 34, -55, 38);
-    this.#ctx.bezierCurveTo(-45, 28, -42, 18, -45, 8 + tailWave * 4);
+    this.#ctx.moveTo(-55, 10 + tailWave * 5);
+    this.#ctx.bezierCurveTo(-68, -5 + tailWave * 7, -78, -24, -66, -28);
+    this.#ctx.bezierCurveTo(-54, -16, -50, -4, -55, 10 + tailWave * 5);
     this.#ctx.fill();
 
-    // 2. TORSO & SKIN (Tronco e Pele Delicada)
-    const skinGrad = this.#ctx.createRadialGradient(10, -5, 2, 8, 0, 20);
-    skinGrad.addColorStop(0, '#fef08a');
-    skinGrad.addColorStop(0.5, '#fde047');
-    skinGrad.addColorStop(1, '#eab308');
-    this.#ctx.fillStyle = '#ffedd5'; // Soft fair porcelain skin
+    // Lower Fin
+    this.#ctx.beginPath();
+    this.#ctx.moveTo(-55, 10 + tailWave * 5);
+    this.#ctx.bezierCurveTo(-68, 24 + tailWave * 7, -78, 42, -66, 46);
+    this.#ctx.bezierCurveTo(-54, 32, -50, 18, -55, 10 + tailWave * 5);
+    this.#ctx.fill();
+
+    // 3. ELEGANT TORSO & PORCELAIN SKIN
     this.#ctx.shadowBlur = 0;
+    this.#ctx.fillStyle = '#fff7ed'; // Soft porcelain skin
 
+    // Waist & Hips
     this.#ctx.beginPath();
-    this.#ctx.ellipse(8, -2, 11, 8, 0, 0, Math.PI * 2);
+    this.#ctx.ellipse(10, 0, 12, 9, 0, 0, Math.PI * 2);
     this.#ctx.fill();
 
-    // Seashell Top (Sutiã de Conchas Violeta)
-    this.#ctx.fillStyle = '#c084fc';
+    // Torso & Chest
     this.#ctx.beginPath();
-    this.#ctx.arc(10, -4, 4, 0, Math.PI * 2);
-    this.#ctx.arc(10, 2, 4, 0, Math.PI * 2);
+    this.#ctx.ellipse(18, -6, 10, 8, -0.15, 0, Math.PI * 2);
     this.#ctx.fill();
 
-    // Outstretched Arms (Braços Nadando)
-    this.#ctx.strokeStyle = '#ffedd5';
+    // Seashell Bra (Conchas Violeta Amethyst)
+    const shellGrad = this.#ctx.createRadialGradient(18, -9, 1, 18, -6, 8);
+    shellGrad.addColorStop(0, '#e9d5ff');
+    shellGrad.addColorStop(0.6, '#c084fc');
+    shellGrad.addColorStop(1, '#7e22ce');
+    this.#ctx.fillStyle = shellGrad;
+
+    this.#ctx.beginPath();
+    this.#ctx.arc(17, -9, 4.5, 0, Math.PI * 2);
+    this.#ctx.arc(17, -2, 4.5, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Pearl Necklace (Colar de Pérolas)
+    this.#ctx.fillStyle = '#ffffff';
+    for (let i = 0; i < 4; i++) {
+      this.#ctx.beginPath();
+      this.#ctx.arc(22 + i * 2, -14 + i * 1.5, 1.2, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
+
+    // Swimming Arms (Braços Nadando com Estilo)
+    this.#ctx.strokeStyle = '#fff7ed';
     this.#ctx.lineWidth = 3.5;
     this.#ctx.lineCap = 'round';
     this.#ctx.beginPath();
-    this.#ctx.moveTo(12, -6);
-    this.#ctx.quadraticCurveTo(22, -10, 26, -4 + Math.sin(this.#worldTime * 6) * 3);
+    this.#ctx.moveTo(22, -10);
+    this.#ctx.quadraticCurveTo(32, -14, 38, -6 + swim * 3);
     this.#ctx.stroke();
 
-    // 3. BEAUTIFUL REALISTIC HEAD & FACE (Cabeça e Rosto Bonito)
-    // Head Oval
-    this.#ctx.fillStyle = '#ffedd5';
+    // 4. BEAUTIFUL REALISTIC HEAD & FACE (Rosto Princesa Disney)
+    // Head Contour
+    this.#ctx.fillStyle = '#fff7ed';
     this.#ctx.beginPath();
-    this.#ctx.ellipse(18, -14, 8, 9, 0, 0, Math.PI * 2);
+    this.#ctx.ellipse(26, -18, 9, 10.5, 0.05, 0, Math.PI * 2);
     this.#ctx.fill();
 
-    // Wavy Long Hair (Cabelo Violeta Encantado Flutuando)
-    const hairGrad = this.#ctx.createLinearGradient(-15, -30, 25, -5);
-    hairGrad.addColorStop(0, '#581c87');
-    hairGrad.addColorStop(0.5, '#9333ea');
-    hairGrad.addColorStop(1, '#c084fc');
-    this.#ctx.fillStyle = hairGrad;
+    // Cheek Blush (Rubor Rosado Fofo)
+    this.#ctx.fillStyle = 'rgba(244, 114, 182, 0.4)';
+    this.#ctx.beginPath();
+    this.#ctx.ellipse(30, -15, 3.5, 2.5, 0, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Expressive Eye (Olhos de Esmeralda Brilhantes)
+    // Eyebrow
+    this.#ctx.strokeStyle = '#451a03';
+    this.#ctx.lineWidth = 1.2;
+    this.#ctx.beginPath();
+    this.#ctx.quadraticCurveTo(28, -23, 33, -21);
+    this.#ctx.stroke();
+
+    // Iris & Pupil
+    const eyeGrad = this.#ctx.createLinearGradient(29, -21, 32, -16);
+    eyeGrad.addColorStop(0, '#047857');
+    eyeGrad.addColorStop(0.5, '#10b981');
+    eyeGrad.addColorStop(1, '#67e8f9');
+    this.#ctx.fillStyle = eyeGrad;
+    this.#ctx.beginPath();
+    this.#ctx.ellipse(31, -18, 2.2, 2.8, 0.1, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Eyelashes (Cílios)
+    this.#ctx.strokeStyle = '#020617';
+    this.#ctx.lineWidth = 1.5;
+    this.#ctx.beginPath();
+    this.#ctx.arc(31, -19.5, 2.5, Math.PI * 1.1, Math.PI * 1.9);
+    this.#ctx.stroke();
+
+    // Eye Sparkle Highlight
+    this.#ctx.fillStyle = '#ffffff';
+    this.#ctx.beginPath();
+    this.#ctx.arc(32, -19, 0.9, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Delicate Nose & Lips
+    this.#ctx.fillStyle = '#f43f5e'; // Soft Pink Smile
+    this.#ctx.beginPath();
+    this.#ctx.arc(33, -12, 1.6, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // 5. MAIN FLOWING HAIR & TIARA (Cabelo Violeta Magnífico)
+    const mainHairGrad = this.#ctx.createLinearGradient(10, -35, 38, -5);
+    mainHairGrad.addColorStop(0, '#7e22ce');
+    mainHairGrad.addColorStop(0.5, '#c084fc');
+    mainHairGrad.addColorStop(1, '#f472b6');
+    this.#ctx.fillStyle = mainHairGrad;
 
     this.#ctx.beginPath();
-    this.#ctx.moveTo(10, -22);
-    this.#ctx.bezierCurveTo(-5, -28 + hairWave * 3, -25, -20 + hairWave * 4, -32, -8 + hairWave * 3);
-    this.#ctx.bezierCurveTo(-20, -5, -8, -12, 10, -14);
+    this.#ctx.moveTo(18, -27);
+    this.#ctx.bezierCurveTo(12, -38, 32, -35, 36, -24);
+    this.#ctx.bezierCurveTo(40, -15, 34, -8, 24, -10 + hairWave1 * 3);
+    this.#ctx.bezierCurveTo(15, -16, 12, -22, 18, -27);
     this.#ctx.closePath();
     this.#ctx.fill();
 
-    // Facial Features (Rosto Realista Delicado)
-    // Emerald Eye & Eyelashes
-    this.#ctx.fillStyle = '#059669';
+    // Golden Royal Tiara (Tiara Real com Joia Azul)
+    this.#ctx.fillStyle = '#facc15'; // Gold
     this.#ctx.beginPath();
-    this.#ctx.ellipse(22, -14, 1.8, 2.2, 0, 0, Math.PI * 2);
-    this.#ctx.fill();
-    this.#ctx.fillStyle = '#ffffff';
-    this.#ctx.beginPath();
-    this.#ctx.arc(22.5, -15, 0.7, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Soft Pink Lips
-    this.#ctx.fillStyle = '#f43f5e';
-    this.#ctx.beginPath();
-    this.#ctx.arc(24, -10, 1.2, 0, Math.PI * 2);
+    this.#ctx.moveTo(22, -26);
+    this.#ctx.lineTo(25, -31);
+    this.#ctx.lineTo(28, -26);
+    this.#ctx.lineTo(31, -30);
+    this.#ctx.lineTo(34, -25);
+    this.#ctx.closePath();
     this.#ctx.fill();
 
-    // Pearl Tiara / Crown (Tiara de Pérolas)
-    this.#ctx.fillStyle = '#f0fdf4';
+    // Sapphire Jewel on Tiara
+    this.#ctx.fillStyle = '#38bdf8';
     this.#ctx.beginPath();
-    this.#ctx.arc(16, -21, 1.8, 0, Math.PI * 2);
-    this.#ctx.arc(19, -22, 2.2, 0, Math.PI * 2);
-    this.#ctx.arc(22, -21, 1.8, 0, Math.PI * 2);
+    this.#ctx.arc(28, -27, 1.8, 0, Math.PI * 2);
     this.#ctx.fill();
 
     this.#ctx.restore();
