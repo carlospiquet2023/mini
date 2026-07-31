@@ -1,8 +1,8 @@
 /* ===========================================
-   RunnerGame — Super Pulo / Mario-Style Platformer
+   RunnerGame — Super Pulo / Original Platformer
    Canvas 2D Side-Scroller with Full Controls (Move Left/Right/Crouch/Jump),
    Moving Conveyor Platforms (Esteiras Móveis),
-   Fiery Lava Pits, Plumber Hero & Stompassable Enemies
+   Fiery Lava Pits & High-Definition Generated Sprites
    =========================================== */
 
 export default class RunnerGame {
@@ -32,12 +32,18 @@ export default class RunnerGame {
   #nextSpawn = 1.4;
   #coinTimer = 0;
 
+  // Sprites
+  #heroSprite = null;
+  #heroSpriteLoaded = false;
+  #shroomSprite = null;
+  #shroomSpriteLoaded = false;
+
   // Controls
   #leftPressed = false;
   #rightPressed = false;
   #downPressed = false;
 
-  // Player (Hero Encanador / Super Runner)
+  // Player (Original Adventurer Hero)
   #player = {
     x: 50,
     y: 0,
@@ -69,6 +75,49 @@ export default class RunnerGame {
     this.#canvas = canvas;
     this.#ctx = ctx;
     this.#callbacks = callbacks;
+    this.#loadSprites();
+  }
+
+  #loadSprites() {
+    this.#loadTransparentSprite('assets/runner_hero.png', (canvas) => {
+      this.#heroSprite = canvas;
+      this.#heroSpriteLoaded = true;
+    });
+    this.#loadTransparentSprite('assets/shroom_enemy.png', (canvas) => {
+      this.#shroomSprite = canvas;
+      this.#shroomSpriteLoaded = true;
+    });
+  }
+
+  #loadTransparentSprite(src, callback) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const off = document.createElement('canvas');
+      off.width = img.width;
+      off.height = img.height;
+      const ctx = off.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        const imgData = ctx.getImageData(0, 0, img.width, img.height);
+        const data = imgData.data;
+
+        // Make white background transparent (Chroma Key)
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (r > 215 && g > 215 && b > 215) {
+            data[i + 3] = 0;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        callback(off);
+      } catch (e) {
+        callback(img);
+      }
+    };
   }
 
   start() {
@@ -262,25 +311,23 @@ export default class RunnerGame {
     if (this.#downPressed && this.#player.grounded && !this.#player.isFallingInGap) {
       if (!this.#player.isCrouching) {
         this.#player.isCrouching = true;
-        this.#player.h = 24; // Shrink height!
+        this.#player.h = 24;
         this.#player.y = this.#groundY - 24;
       }
     } else if (this.#player.isCrouching) {
       this.#player.isCrouching = false;
-      this.#player.h = 44; // Restore height!
+      this.#player.h = 44;
       this.#player.y = this.#groundY - 44;
     }
 
-    // HORIZONTAL MOVEMENT CONTROLS (Frente, Trás, Parar)
+    // HORIZONTAL MOVEMENT CONTROLS
     let moveVx = 0;
     if (this.#leftPressed) moveVx = -190;
     if (this.#rightPressed) moveVx = 220;
 
     this.#player.x += moveVx * dt;
-    // Bounded left edge
     if (this.#player.x < 10) this.#player.x = 10;
 
-    // World Camera Scrolling when player moves right
     let worldScrollSpeed = this.#speed;
     if (this.#player.x > this.#width * 0.45) {
       const overflow = this.#player.x - this.#width * 0.45;
@@ -291,7 +338,7 @@ export default class RunnerGame {
     this.#score = Math.floor(this.#distance / 10) + this.#coins * 10;
     if (this.#callbacks.onScoreChange) this.#callbacks.onScoreChange(this.#score);
 
-    // Check if player is over a PITFALL GAP
+    // Check Gaps
     const pxCenter = this.#player.x + this.#player.w / 2;
     let overGap = false;
     for (const g of this.#gaps) {
@@ -301,7 +348,7 @@ export default class RunnerGame {
       }
     }
 
-    // Check if player is on top of a MOVING PLATFORM (Esteira Rolante)
+    // Check Platforms
     let landedOnPlatform = false;
     for (const p of this.#platforms) {
       if (pxCenter > p.x && pxCenter < p.x + p.w) {
@@ -311,19 +358,18 @@ export default class RunnerGame {
           this.#player.vy = 0;
           this.#player.grounded = true;
           this.#player.jumpsLeft = 2;
-          this.#player.x += p.moveVx * dt; // Ride the moving platform!
+          this.#player.x += p.moveVx * dt;
           break;
         }
       }
     }
 
-    // Gravity & Fall Mechanics
+    // Gravity
     if (!landedOnPlatform) {
       this.#player.vy += this.#gravity * dt;
       this.#player.y += this.#player.vy * dt;
 
       if (overGap && this.#player.y + this.#player.h >= this.#groundY - 2) {
-        // Player falls into PITFALL LAVA GAP!
         this.#player.isFallingInGap = true;
         this.#player.grounded = false;
       }
@@ -336,7 +382,6 @@ export default class RunnerGame {
           this.#player.jumpsLeft = 2;
         }
       } else {
-        // Fallen into Lava Gap: create fiery explosion & respawn!
         if (this.#player.y > this.#height + 40) {
           this.#createSquishParticles(this.#player.x, this.#height - 30, '#ef4444');
           this.#lives--;
@@ -346,7 +391,6 @@ export default class RunnerGame {
             this.#state = 'GAMEOVER';
             if (this.#callbacks.onGameOver) this.#callbacks.onGameOver(this.#score);
           } else {
-            // Respawn player safely
             this.#player.isFallingInGap = false;
             this.#player.x = 40;
             this.#player.y = this.#groundY - 44;
@@ -359,7 +403,7 @@ export default class RunnerGame {
       }
     }
 
-    // Parallax Background
+    // Parallax
     for (const c of this.#clouds) {
       c.x -= c.speed * dt;
       if (c.x + c.w < 0) c.x = this.#width + Math.random() * 30;
@@ -369,7 +413,7 @@ export default class RunnerGame {
       if (h.x + h.w < 0) h.x = this.#width + Math.random() * 20;
     }
 
-    // Spawner Logic
+    // Spawners
     this.#spawnTimer += dt;
     if (this.#spawnTimer >= this.#nextSpawn) {
       this.#spawnTimer = 0;
@@ -377,21 +421,18 @@ export default class RunnerGame {
       this.#spawnWorldElement();
     }
 
-    // Spawn Coins
     this.#coinTimer += dt;
     if (this.#coinTimer >= 1.2) {
       this.#coinTimer = 0;
       this.#spawnCoinGroup();
     }
 
-    // Update Gaps (Lava Pits)
+    // Updates
     for (let i = this.#gaps.length - 1; i >= 0; i--) {
       const g = this.#gaps[i];
       g.x -= worldScrollSpeed * dt;
       if (g.x + g.w < -40) this.#gaps.splice(i, 1);
     }
-
-    // Update Moving Platforms (Esteiras Móveis)
     for (let i = this.#platforms.length - 1; i >= 0; i--) {
       const p = this.#platforms[i];
       p.x -= worldScrollSpeed * dt;
@@ -400,38 +441,28 @@ export default class RunnerGame {
       p.x += p.moveVx * dt;
       if (p.x + p.w < -60) this.#platforms.splice(i, 1);
     }
-
-    // Update Enemies (Cogumelos & Tartarugas)
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const e = this.#enemies[i];
       e.x -= (worldScrollSpeed + (e.walkSpeed || 30)) * dt;
       e.anim += dt * 8;
       if (e.x + e.w < -40) this.#enemies.splice(i, 1);
     }
-
-    // Update Obstacles (Wooden Crates & Brick Blocks - NO ?)
     for (let i = this.#obstacles.length - 1; i >= 0; i--) {
       const obs = this.#obstacles[i];
       obs.x -= worldScrollSpeed * dt;
       if (obs.x + obs.w < -40) this.#obstacles.splice(i, 1);
     }
-
-    // Update Coins
     for (let i = this.#coinsList.length - 1; i >= 0; i--) {
       const coin = this.#coinsList[i];
       coin.x -= worldScrollSpeed * dt;
       coin.anim += dt * 8;
       if (coin.x < -30) this.#coinsList.splice(i, 1);
     }
-
-    // Update Powerups (Stars ⭐)
     for (let i = this.#powerups.length - 1; i >= 0; i--) {
       const p = this.#powerups[i];
       p.x -= worldScrollSpeed * dt;
       if (p.x < -30) this.#powerups.splice(i, 1);
     }
-
-    // Update Particles
     for (let i = this.#particles.length - 1; i >= 0; i--) {
       const p = this.#particles[i];
       p.x += p.vx * dt;
@@ -440,7 +471,6 @@ export default class RunnerGame {
       if (p.life <= 0) this.#particles.splice(i, 1);
     }
 
-    // Collision Checks
     this.#checkCollisions();
   }
 
@@ -448,12 +478,10 @@ export default class RunnerGame {
     const rnd = Math.random();
 
     if (rnd < 0.35) {
-      // Spawn LAVA PITFALL GAP + MOVING CONVEYOR PLATFORM (Esteira sobre Lava)
       const gapW = 60 + Math.random() * 30;
       const gapX = this.#width + 40;
       this.#gaps.push({ x: gapX, w: gapW });
 
-      // Spawn Moving Conveyor Belt Platform over the lava gap!
       this.#platforms.push({
         x: gapX + 10,
         y: this.#groundY - 45,
@@ -462,14 +490,13 @@ export default class RunnerGame {
         moveVx: 0
       });
     } else if (rnd < 0.70) {
-      // Spawn ENEMY (Cogumelo Selvagem ou Tarta-Espinho)
       const isShroom = Math.random() < 0.55;
       if (isShroom) {
         this.#enemies.push({
           type: 'shroom',
           x: this.#width + 40,
-          y: this.#groundY - 26,
-          w: 26, h: 26,
+          y: this.#groundY - 28,
+          w: 28, h: 28,
           walkSpeed: 25, anim: 0
         });
       } else {
@@ -482,7 +509,6 @@ export default class RunnerGame {
         });
       }
     } else {
-      // Spawn OBSTACLE (Wooden Crate or Brick Block - NO ?)
       const isCrate = Math.random() < 0.5;
       this.#obstacles.push({
         type: isCrate ? 'crate' : 'brick',
@@ -508,7 +534,6 @@ export default class RunnerGame {
         });
       }
     } else if (Math.random() < 0.15 && this.#powerups.length === 0) {
-      // Star Powerup ⭐
       this.#powerups.push({
         x: this.#width + 40,
         y: this.#groundY - 65,
@@ -526,7 +551,7 @@ export default class RunnerGame {
     const pw = this.#player.w - 6;
     const ph = this.#player.h - 6;
 
-    // Player vs Coins
+    // Coins
     for (let i = this.#coinsList.length - 1; i >= 0; i--) {
       const c = this.#coinsList[i];
       if (Math.abs(px + pw / 2 - c.x) < pw / 2 + c.r && Math.abs(py + ph / 2 - c.y) < ph / 2 + c.r) {
@@ -545,7 +570,7 @@ export default class RunnerGame {
       }
     }
 
-    // Player vs Powerups (⭐)
+    // Powerups (⭐)
     for (let i = this.#powerups.length - 1; i >= 0; i--) {
       const p = this.#powerups[i];
       if (Math.abs(px + pw / 2 - p.x) < pw / 2 + p.r && Math.abs(py + ph / 2 - p.y) < ph / 2 + p.r) {
@@ -557,11 +582,10 @@ export default class RunnerGame {
       }
     }
 
-    // Player vs Enemies (STOMP MECHANIC!)
+    // Enemies
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const e = this.#enemies[i];
       if (px < e.x + e.w && px + pw > e.x && py < e.y + e.h && py + ph > e.y) {
-        // Star Invincibility
         if (this.#player.starTimer > 0) {
           this.#createSquishParticles(e.x + e.w / 2, e.y + e.h / 2, '#facc15');
           this.#enemies.splice(i, 1);
@@ -569,12 +593,11 @@ export default class RunnerGame {
           continue;
         }
 
-        // STOMP CHECK
         const isStomping = (this.#player.vy > 0) && (py + ph - this.#player.vy * 0.1 <= e.y + 12);
         if (isStomping) {
-          this.#player.vy = -380; // Bounce upward!
+          this.#player.vy = -380;
           this.#player.jumpsLeft = 1;
-          this.#createSquishParticles(e.x + e.w / 2, e.y + e.h / 2, e.type === 'shroom' ? '#78350f' : '#22c55e');
+          this.#createSquishParticles(e.x + e.w / 2, e.y + e.h / 2, '#78350f');
           this.#enemies.splice(i, 1);
           this.#score += 50;
           this.#shakeAmount = 6;
@@ -591,7 +614,7 @@ export default class RunnerGame {
       }
     }
 
-    // Player vs Obstacles (Crates & Brick Blocks)
+    // Obstacles
     for (let i = this.#obstacles.length - 1; i >= 0; i--) {
       const obs = this.#obstacles[i];
       if (px < obs.x + obs.w && px + pw > obs.x && py < obs.y + obs.h && py + ph > obs.y) {
@@ -600,13 +623,11 @@ export default class RunnerGame {
           this.#obstacles.splice(i, 1);
         } else if (this.#player.invulnerableTimer <= 0) {
           if (this.#player.vy > 0 && py + ph - this.#player.vy * 0.1 <= obs.y + 8) {
-            // Land on top of block!
             this.#player.y = obs.y - (this.#player.isCrouching ? 24 : 44);
             this.#player.vy = 0;
             this.#player.grounded = true;
             this.#player.jumpsLeft = 2;
           } else if (!this.#player.isCrouching) {
-            // Hit obstacle side!
             this.#lives--;
             this.#shakeAmount = 15;
             this.#player.invulnerableTimer = 1.5;
@@ -637,14 +658,13 @@ export default class RunnerGame {
   #draw() {
     this.#ctx.save();
 
-    // Screen Shake
     if (this.#shakeAmount > 0) {
       const sx = (Math.random() - 0.5) * this.#shakeAmount;
       const sy = (Math.random() - 0.5) * this.#shakeAmount;
       this.#ctx.translate(sx, sy);
     }
 
-    // Sky Gradient
+    // Sky
     const skyGrad = this.#ctx.createLinearGradient(0, 0, 0, this.#groundY);
     skyGrad.addColorStop(0, '#0284c7');
     skyGrad.addColorStop(0.65, '#38bdf8');
@@ -652,7 +672,7 @@ export default class RunnerGame {
     this.#ctx.fillStyle = skyGrad;
     this.#ctx.fillRect(0, 0, this.#width, this.#groundY);
 
-    // Sun / Daylight Glow
+    // Sun
     this.#ctx.fillStyle = 'rgba(255, 253, 231, 0.45)';
     this.#ctx.beginPath();
     this.#ctx.arc(this.#width * 0.82, 45, 32, 0, Math.PI * 2);
@@ -666,7 +686,7 @@ export default class RunnerGame {
       this.#ctx.fill();
     }
 
-    // Background Mountain Hills (Parallax)
+    // Parallax Hills
     this.#ctx.fillStyle = '#0369a1';
     this.#ctx.globalAlpha = 0.35;
     for (const h of this.#hills) {
@@ -676,10 +696,10 @@ export default class RunnerGame {
     }
     this.#ctx.globalAlpha = 1.0;
 
-    // DRAW GROUND & FIERY LAVA PITS
+    // Ground & Lava
     this.#drawGroundAndGaps();
 
-    // DRAW MOVING CONVEYOR PLATFORMS (Esteiras Rolantes Móveis)
+    // Platforms
     for (const p of this.#platforms) {
       this.#drawConveyorPlatform(p);
     }
@@ -716,26 +736,23 @@ export default class RunnerGame {
       this.#ctx.restore();
     }
 
-    // Obstacles (Wooden Crates & Brick Blocks - NO ?)
+    // Obstacles
     for (const obs of this.#obstacles) {
       this.#ctx.save();
       this.#ctx.translate(obs.x, obs.y);
 
       if (obs.type === 'brick') {
-        // 3D Brick Block
         this.#ctx.fillStyle = '#b45309';
         this.#ctx.strokeStyle = '#78350f';
         this.#ctx.lineWidth = 2;
         this.#ctx.fillRect(0, 0, obs.w, obs.h);
         this.#ctx.strokeRect(0, 0, obs.w, obs.h);
-        // Brick texture lines
         this.#ctx.strokeStyle = '#78350f';
         this.#ctx.beginPath();
         this.#ctx.moveTo(0, obs.h / 2); this.#ctx.lineTo(obs.w, obs.h / 2);
         this.#ctx.moveTo(obs.w / 2, 0); this.#ctx.lineTo(obs.w / 2, obs.h / 2);
         this.#ctx.stroke();
       } else if (obs.type === 'crate') {
-        // Wooden Crate
         this.#ctx.fillStyle = '#d97706';
         this.#ctx.strokeStyle = '#78350f';
         this.#ctx.lineWidth = 2;
@@ -749,7 +766,7 @@ export default class RunnerGame {
       this.#ctx.restore();
     }
 
-    // Enemies (Cogumelo Selvagem & Tarta-Espinho)
+    // Enemies
     for (const e of this.#enemies) {
       this.#drawEnemy(e);
     }
@@ -765,7 +782,7 @@ export default class RunnerGame {
       this.#ctx.restore();
     }
 
-    // Player Shadow (only when on solid ground)
+    // Shadow
     if (this.#player.grounded && !this.#player.isFallingInGap) {
       this.#ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
       this.#ctx.beginPath();
@@ -773,12 +790,12 @@ export default class RunnerGame {
       this.#ctx.fill();
     }
 
-    // HERO CHARACTER (Encanador Plumber Hero)
+    // HERO SPRITE
     if (this.#player.invulnerableTimer <= 0 || Math.floor(performance.now() / 100) % 2 === 0) {
       this.#drawHeroCharacter();
     }
 
-    // Top UI Bar (Lives & Coins)
+    // Top UI Bar
     this.#ctx.save();
     this.#ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     this.#ctx.fillRect(0, 0, this.#width, 24);
@@ -786,15 +803,11 @@ export default class RunnerGame {
     this.#ctx.font = 'bold 12px Fredoka, sans-serif';
     this.#ctx.textBaseline = 'middle';
 
-    // Lives (Hearts)
     let hearts = '';
-    for (let i = 0; i < 3; i++) {
-      hearts += i < this.#lives ? '❤️ ' : '💔 ';
-    }
+    for (let i = 0; i < 3; i++) hearts += i < this.#lives ? '❤️ ' : '💔 ';
     this.#ctx.fillStyle = '#ffffff';
     this.#ctx.fillText(hearts, 8, 12);
 
-    // Coins
     this.#ctx.fillStyle = '#facc15';
     this.#ctx.textAlign = 'right';
     this.#ctx.fillText(`🟡 ${this.#coins}`, this.#width - 8, 12);
@@ -836,7 +849,6 @@ export default class RunnerGame {
       if (gap.x > currentX) {
         this.#drawSolidGroundSegment(currentX, gap.x);
       }
-      // Draw Fiery Lava Pitfall Gap
       this.#drawLavaGap(gap.x, gap.x + gap.w);
       currentX = gap.x + gap.w;
     }
@@ -857,7 +869,6 @@ export default class RunnerGame {
     this.#ctx.fillStyle = earthGrad;
     this.#ctx.fillRect(x1, this.#groundY, w, this.#height - this.#groundY);
 
-    // Grass Top Line
     this.#ctx.fillStyle = '#4ade80';
     this.#ctx.fillRect(x1, this.#groundY, w, 3.5);
   }
@@ -866,16 +877,14 @@ export default class RunnerGame {
     const w = x2 - x1;
     if (w <= 0) return;
 
-    // Fiery Lava Pit Gradient
     const lavaGrad = this.#ctx.createLinearGradient(0, this.#groundY, 0, this.#height);
     lavaGrad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
     lavaGrad.addColorStop(0.5, '#7f1d1d');
     lavaGrad.addColorStop(0.8, '#ef4444');
-    lavaGrad.addColorStop(1, '#facc15'); // Bubbling Lava Core!
+    lavaGrad.addColorStop(1, '#facc15');
     this.#ctx.fillStyle = lavaGrad;
     this.#ctx.fillRect(x1, this.#groundY, w, this.#height - this.#groundY);
 
-    // Animated Fiery Lava Surface Waves
     this.#ctx.fillStyle = '#f97316';
     this.#ctx.beginPath();
     const time = performance.now() * 0.005;
@@ -888,7 +897,6 @@ export default class RunnerGame {
     this.#ctx.lineTo(x1, this.#height);
     this.#ctx.fill();
 
-    // Hanging grass roots at gap edges
     this.#ctx.fillStyle = '#166534';
     this.#ctx.fillRect(x1 - 2, this.#groundY, 4, 8);
     this.#ctx.fillRect(x2 - 2, this.#groundY, 4, 8);
@@ -898,7 +906,6 @@ export default class RunnerGame {
     this.#ctx.save();
     this.#ctx.translate(p.x, p.y);
 
-    // Metallic Conveyor Platform Body (Esteira Rolante)
     this.#ctx.fillStyle = '#475569';
     this.#ctx.strokeStyle = '#38bdf8';
     this.#ctx.lineWidth = 2;
@@ -909,7 +916,6 @@ export default class RunnerGame {
     this.#ctx.fill();
     this.#ctx.stroke();
 
-    // Animated Conveyor Belt Rollers/Stripes
     this.#ctx.fillStyle = '#94a3b8';
     const offset = (performance.now() * 0.03) % 10;
     for (let x = 4 + offset; x < p.w - 4; x += 10) {
@@ -923,7 +929,14 @@ export default class RunnerGame {
     this.#ctx.save();
     this.#ctx.translate(e.x, e.y);
 
-    if (e.type === 'shroom') {
+    if (e.type === 'shroom' && this.#shroomSpriteLoaded) {
+      const w = 32;
+      const h = 30;
+      const waddle = Math.sin(e.anim) * 2;
+      this.#ctx.shadowBlur = 8;
+      this.#ctx.shadowColor = '#78350f';
+      this.#ctx.drawImage(this.#shroomSprite, -3, waddle - 4, w, h);
+    } else if (e.type === 'shroom') {
       const waddle = Math.sin(e.anim) * 2;
       this.#ctx.fillStyle = '#fef3c7';
       this.#ctx.fillRect(6, 12 + waddle, 14, 12);
@@ -931,18 +944,6 @@ export default class RunnerGame {
       this.#ctx.fillStyle = '#78350f';
       this.#ctx.beginPath();
       this.#ctx.arc(13, 10 + waddle, 13, Math.PI, 0);
-      this.#ctx.fill();
-
-      this.#ctx.fillStyle = '#ffffff';
-      this.#ctx.beginPath();
-      this.#ctx.arc(8, 6 + waddle, 3, 0, Math.PI * 2);
-      this.#ctx.arc(17, 7 + waddle, 2.5, 0, Math.PI * 2);
-      this.#ctx.fill();
-
-      this.#ctx.fillStyle = '#000000';
-      this.#ctx.beginPath();
-      this.#ctx.arc(9, 15 + waddle, 2, 0, Math.PI * 2);
-      this.#ctx.arc(17, 15 + waddle, 2, 0, Math.PI * 2);
       this.#ctx.fill();
     } else if (e.type === 'turtle') {
       const walkAnim = Math.floor(e.anim) % 2 === 0 ? 0 : 2;
@@ -957,10 +958,6 @@ export default class RunnerGame {
       this.#ctx.moveTo(12, 2); this.#ctx.lineTo(14, -2); this.#ctx.lineTo(16, 2);
       this.#ctx.moveTo(18, 4); this.#ctx.lineTo(20, 0); this.#ctx.lineTo(22, 4);
       this.#ctx.fill();
-
-      this.#ctx.fillStyle = '#eab308';
-      this.#ctx.fillRect(4 + walkAnim, 18, 7, 6);
-      this.#ctx.fillRect(17 - walkAnim, 18, 7, 6);
     }
 
     this.#ctx.restore();
@@ -975,85 +972,18 @@ export default class RunnerGame {
       this.#ctx.shadowColor = '#facc15';
     }
 
-    if (this.#player.isCrouching) {
-      // DUCK / CROUCH POSE (Baixar)
-      // Cap & Head lowered
-      this.#ctx.fillStyle = '#ef4444';
-      this.#ctx.fillRect(4, 2, 22, 6);
-      this.#ctx.fillStyle = '#fed7aa';
-      this.#ctx.fillRect(6, 8, 18, 8);
-      // Overalls & Shirt squished
-      this.#ctx.fillStyle = '#1d4ed8';
-      this.#ctx.fillRect(4, 16, 22, 8);
-      this.#ctx.fillStyle = '#78350f';
-      this.#ctx.fillRect(4, 20, 8, 4);
-      this.#ctx.fillRect(18, 20, 8, 4);
+    if (this.#heroSpriteLoaded) {
+      // Draw High-Definition Original Adventurer Hero Sprite!
+      const w = 46;
+      const h = this.#player.isCrouching ? 26 : 46;
+      const bob = this.#player.grounded ? Math.sin(this.#player.animFrame) * 2 : 0;
+      this.#ctx.shadowBlur = 10;
+      this.#ctx.shadowColor = '#38bdf8';
+      this.#ctx.drawImage(this.#heroSprite, -8, bob - 2, w, h);
     } else {
-      // STANDING / RUNNING HERO
-      // 1. Red Cap
-      this.#ctx.fillStyle = '#ef4444';
-      this.#ctx.beginPath();
-      this.#ctx.arc(15, 10, 10, Math.PI * 0.9, Math.PI * 2.1);
-      this.#ctx.fill();
-      this.#ctx.fillRect(16, 8, 12, 4);
-
-      // Cap Emblem Badge
-      this.#ctx.fillStyle = '#ffffff';
-      this.#ctx.beginPath();
-      this.#ctx.arc(12, 8, 3.5, 0, Math.PI * 2);
-      this.#ctx.fill();
-      this.#ctx.fillStyle = '#ef4444';
-      this.#ctx.font = 'bold 5px sans-serif';
-      this.#ctx.fillText('S', 10.5, 9.5);
-
-      // 2. Head & Skin
-      this.#ctx.fillStyle = '#fed7aa';
-      this.#ctx.beginPath();
-      this.#ctx.arc(14, 14, 8, 0, Math.PI * 2);
-      this.#ctx.fill();
-
-      this.#ctx.fillStyle = '#000000';
-      this.#ctx.beginPath();
-      this.#ctx.arc(18, 13, 1.5, 0, Math.PI * 2);
-      this.#ctx.fill();
-
-      // Mustache
-      this.#ctx.fillStyle = '#78350f';
-      this.#ctx.beginPath();
-      this.#ctx.ellipse(17, 16, 5, 2.5, 0, 0, Math.PI * 2);
-      this.#ctx.fill();
-
-      // 3. Torso & Overalls
-      this.#ctx.fillStyle = '#ef4444'; // Red Shirt
-      this.#ctx.fillRect(6, 20, 18, 10);
-
-      this.#ctx.fillStyle = '#1d4ed8'; // Blue Overalls
-      this.#ctx.fillRect(7, 24, 16, 12);
-      this.#ctx.fillRect(9, 20, 3, 5);
-      this.#ctx.fillRect(18, 20, 3, 5);
-
-      // Buttons
-      this.#ctx.fillStyle = '#facc15';
-      this.#ctx.fillRect(9.5, 23.5, 2, 2);
-      this.#ctx.fillRect(18.5, 23.5, 2, 2);
-
-      // Gloves
-      this.#ctx.fillStyle = '#ffffff';
-      this.#ctx.beginPath();
-      this.#ctx.arc(4, 25, 3.5, 0, Math.PI * 2);
-      this.#ctx.arc(26, 25, 3.5, 0, Math.PI * 2);
-      this.#ctx.fill();
-
-      // 4. Legs & Boots
-      this.#ctx.fillStyle = '#78350f';
-      if (!this.#player.grounded) {
-        this.#ctx.fillRect(6, 34, 8, 8);
-        this.#ctx.fillRect(17, 32, 8, 8);
-      } else {
-        const legOff = Math.sin(this.#player.animFrame) * 7;
-        this.#ctx.fillRect(6 + legOff, 34, 7, 9);
-        this.#ctx.fillRect(18 - legOff, 34, 7, 9);
-      }
+      // Fallback vector drawing
+      this.#ctx.fillStyle = '#38bdf8';
+      this.#ctx.fillRect(0, 0, 30, this.#player.isCrouching ? 24 : 44);
     }
 
     this.#ctx.restore();
