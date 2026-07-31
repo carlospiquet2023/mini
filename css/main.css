@@ -1006,6 +1006,142 @@
     filter: brightness(1.15);
   }
 
+  /* ==========================================================
+     LANDSCAPE MODE (Console Portátil Estilo Nintendo Switch / PSP)
+     ========================================================== */
+  @media (orientation: landscape) and (max-height: 550px) {
+    body {
+      overflow: hidden;
+    }
+
+    .console-wrapper {
+      max-width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 130px 1fr 130px;
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "bar bar bar"
+        "left screen right";
+      background: #0f172a;
+      padding: 0;
+    }
+
+    /* Top Brand / Utility Bar in Landscape */
+    .brand-bar {
+      grid-area: bar;
+      background: linear-gradient(90deg, #0284c7, #1e293b, #ef4444);
+      padding: 4px 16px;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      z-index: 110;
+    }
+
+    /* Center Display Screen */
+    .console-top {
+      grid-area: screen;
+      max-height: 100%;
+      height: 100%;
+      padding: 4px;
+      border-radius: 0;
+      box-shadow: none;
+      border: none;
+    }
+
+    .screen-bezel {
+      border-radius: 6px;
+      border-width: 3px;
+    }
+
+    /* Left Grip Wing (Blue Nintendo Switch Style) */
+    .console-bottom {
+      display: contents;
+    }
+
+    .controls-row {
+      display: contents;
+    }
+
+    .left-controls {
+      grid-area: left;
+      background: linear-gradient(145deg, #0284c7, #0369a1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      border-right: 4px solid #075985;
+      box-shadow: inset -5px 0 15px rgba(0, 0, 0, 0.4);
+      padding: 8px;
+    }
+
+    /* Right Grip Wing (Red Nintendo Switch Style) */
+    .right-controls {
+      grid-area: right;
+      background: linear-gradient(145deg, #ef4444, #b91c1c);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      border-left: 4px solid #991b1b;
+      box-shadow: inset 5px 0 15px rgba(0, 0, 0, 0.4);
+      padding: 8px;
+    }
+
+    /* D-Pad in Left Blue Grip */
+    .dpad-container {
+      width: 114px;
+      height: 114px;
+    }
+
+    .dpad-cross {
+      width: 110px;
+      height: 110px;
+    }
+
+    .dpad-btn {
+      width: 36px;
+      height: 36px;
+    }
+
+    /* Action Button in Right Red Grip */
+    .rotate-button {
+      width: 76px;
+      height: 76px;
+      background: linear-gradient(145deg, #facc15, #ca8a04);
+      box-shadow:
+        0 5px 0 #854d0e,
+        0 8px 14px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Central + JOGOS Pill Button floating at top center */
+    .selector-group {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 120;
+    }
+
+    .more-games-pill-btn {
+      padding: 5px 14px;
+      font-size: 13px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+    }
+
+    .name-banner {
+      display: none;
+    }
+  }
+
+  .game-card-btn:hover {
+    transform: translateX(4px) scale(1.02);
+    filter: brightness(1.15);
+  }
+
   .game-card-icon {
     font-size: 24px;
     line-height: 1;
