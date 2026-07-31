@@ -370,10 +370,11 @@
      ======================== */
   .console-bottom {
     background: var(--console-bg);
-    padding-bottom: 16px;
+    padding-bottom: 20px;
     box-shadow:
       inset 0 2px 5px rgba(0, 0, 0, 0.1),
       0 8px 25px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
   }
 
   /* Controls Row */
@@ -381,7 +382,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px 8px;
+    padding: 12px 14px 10px;
   }
 
   /* Button Group */
@@ -410,8 +411,8 @@
      D-PAD CROSS (4 Botões Amarelos - Cima/Baixo/Esq/Dir)
      ========================================== */
   .dpad-container {
-    width: 104px;
-    height: 104px;
+    width: 124px;
+    height: 124px;
     position: relative;
     display: flex;
     align-items: center;
@@ -419,30 +420,30 @@
   }
 
   .dpad-cross {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     position: relative;
   }
 
   .dpad-btn {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: none;
     cursor: pointer;
     position: absolute;
     background: linear-gradient(145deg, #facc15, #ca8a04);
     box-shadow:
-      0 3.5px 0 #854d0e,
-      0 4px 8px rgba(0, 0, 0, 0.4),
-      inset 0 1.5px 2px rgba(255, 255, 255, 0.6);
+      0 4px 0 #854d0e,
+      0 5px 10px rgba(0, 0, 0, 0.4),
+      inset 0 1.8px 2.5px rgba(255, 255, 255, 0.7);
     outline: none;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     transition: transform 0.08s ease, box-shadow 0.08s ease;
 
     &:active {
-      transform: translateY(2px) scale(0.95);
+      transform: translateY(2px) scale(0.94);
       box-shadow:
         0 1.5px 0 #854d0e,
         0 2px 4px rgba(0, 0, 0, 0.4),
@@ -450,32 +451,43 @@
     }
   }
 
+  /* Extended invisible touch target for D-Pad buttons */
+  .dpad-btn::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-radius: 50%;
+  }
+
   .dpad-up {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    &:active { transform: translate(-50%, 2px) scale(0.95); }
+    &:active { transform: translate(-50%, 2px) scale(0.94); }
   }
 
   .dpad-down {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    &:active { transform: translate(-50%, 2px) scale(0.95); }
+    &:active { transform: translate(-50%, 2px) scale(0.94); }
   }
 
   .dpad-left {
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    &:active { transform: translate(0, -50%) scale(0.95); }
+    &:active { transform: translate(0, -50%) scale(0.94); }
   }
 
   .dpad-right {
     right: 0;
     top: 50%;
     transform: translateY(-50%);
-    &:active { transform: translate(0, -50%) scale(0.95); }
+    &:active { transform: translate(0, -50%) scale(0.94); }
   }
 
   .dpad-center {
@@ -504,7 +516,7 @@
     align-items: center;
     gap: 3px;
     color: var(--name-color, #f8fafc);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 900;
     letter-spacing: 1px;
     font-family: system-ui, -apple-system, sans-serif;
@@ -517,16 +529,16 @@
   }
 
   .rotate-button {
-    width: 68px;
-    height: 68px;
+    width: 78px;
+    height: 78px;
     border-radius: 50%;
     border: none;
     cursor: pointer;
     position: relative;
     background: linear-gradient(145deg, #facc15, #ca8a04);
     box-shadow:
-      0 6px 0 #854d0e,
-      0 8px 16px rgba(0, 0, 0, 0.4),
+      0 6.5px 0 #854d0e,
+      0 9px 18px rgba(0, 0, 0, 0.45),
       inset 0 2px 3px rgba(255, 255, 255, 0.6);
     outline: none;
     -webkit-tap-highlight-color: transparent;
@@ -534,12 +546,22 @@
     transition: transform 0.08s ease, box-shadow 0.08s ease;
 
     &:active {
-      transform: translateY(4px) scale(0.96);
+      transform: translateY(4px) scale(0.95);
       box-shadow:
         0 2px 0 #854d0e,
         0 4px 8px rgba(0, 0, 0, 0.4),
         inset 0 2px 4px rgba(0, 0, 0, 0.3);
     }
+  }
+
+  .rotate-button::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    border-radius: 50%;
   }
 
   /* ========================
@@ -557,8 +579,8 @@
     border: 1.5px solid rgba(255, 255, 255, 0.35);
     color: #f8fafc;
     border-radius: 12px;
-    padding: 3px 9px;
-    font-size: 10px;
+    padding: 4px 12px;
+    font-size: 11px;
     font-weight: 800;
     cursor: pointer;
     letter-spacing: 0.5px;
@@ -584,8 +606,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 104px;
-    height: 104px;
+    min-width: 124px;
+    height: 124px;
   }
 
   .mini-only-ui {
@@ -700,6 +722,59 @@
         0 6px 14px rgba(0, 0, 0, 0.4),
         inset 0 2px 6px rgba(255, 255, 255, 0.8);
       border-color: #22d3ee;
+    }
+  }
+
+  /* ========================
+     RESPONSIVE (Mobile Phones)
+     ======================== */
+  @media (max-width: 480px) {
+    .console-bottom {
+      padding-top: 8px;
+      padding-bottom: 24px;
+      min-height: 200px;
+    }
+
+    .controls-row {
+      padding: 10px 10px 14px;
+      gap: 6px;
+    }
+
+    .left-controls,
+    .right-controls {
+      min-width: 128px;
+      height: 128px;
+    }
+
+    .dpad-container {
+      width: 128px;
+      height: 128px;
+    }
+
+    .dpad-cross {
+      width: 124px;
+      height: 124px;
+    }
+
+    .dpad-btn {
+      width: 42px;
+      height: 42px;
+    }
+
+    .rotate-button {
+      width: 82px;
+      height: 82px;
+    }
+
+    .game-button {
+      width: 72px;
+      height: 72px;
+    }
+
+    .more-games-pill-btn {
+      padding: 10px 22px;
+      font-size: 16px;
+      border-radius: 24px;
     }
   }
 
