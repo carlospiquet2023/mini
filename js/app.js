@@ -49,7 +49,7 @@ const gameManager = new GameManager();
 // PWA SERVICE WORKER REGISTRATION
 // ==========================================
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
   window.addEventListener('load', async () => {
     try {
       const registration = await navigator.serviceWorker.register('./sw.js');
