@@ -1,8 +1,8 @@
 /* ===========================================
-   RunnerGame — Super Pulo / Original Platformer
+   RunnerGame — Super Pulo / Ultimate Platformer
    Canvas 2D Side-Scroller with Full Controls (Move Left/Right/Crouch/Jump),
    Moving Conveyor Platforms (Esteiras Móveis),
-   Fiery Lava Pits & High-Definition Generated Sprites
+   Fiery Lava Pits, 5 Enemy Types & 4 Obstacle Types
    =========================================== */
 
 export default class RunnerGame {
@@ -29,7 +29,7 @@ export default class RunnerGame {
   #speed = 160;
   #distance = 0;
   #spawnTimer = 0;
-  #nextSpawn = 1.4;
+  #nextSpawn = 1.3;
   #coinTimer = 0;
 
   // Sprites
@@ -37,13 +37,19 @@ export default class RunnerGame {
   #heroSpriteLoaded = false;
   #shroomSprite = null;
   #shroomSpriteLoaded = false;
+  #droneSprite = null;
+  #droneSpriteLoaded = false;
+  #lavaSprite = null;
+  #lavaSpriteLoaded = false;
+  #crabSprite = null;
+  #crabSpriteLoaded = false;
 
   // Controls
   #leftPressed = false;
   #rightPressed = false;
   #downPressed = false;
 
-  // Player (Original Adventurer Hero)
+  // Player
   #player = {
     x: 50,
     y: 0,
@@ -63,8 +69,8 @@ export default class RunnerGame {
   // World Entities
   #gaps = [];             // Buracos no chão com Lava
   #platforms = [];        // Esteiras Rolantes / Plataformas Móveis
-  #enemies = [];          // Cogumelos Selvagens e Tarta-Espinhos
-  #obstacles = [];        // Caixas de Madeira e Blocos de Tijolo
+  #enemies = [];          // 5 Tipos: shroom, turtle, drone, lava, crab
+  #obstacles = [];        // 4 Tipos: crate, brick, laser, spiked_boulder
   #coinsList = [];        // Moedas de ouro
   #powerups = [];         // Estrelas ⭐
   #particles = [];        // Efeitos visuais
@@ -87,6 +93,18 @@ export default class RunnerGame {
       this.#shroomSprite = canvas;
       this.#shroomSpriteLoaded = true;
     });
+    this.#loadTransparentSprite('assets/drone_enemy.png', (canvas) => {
+      this.#droneSprite = canvas;
+      this.#droneSpriteLoaded = true;
+    });
+    this.#loadTransparentSprite('assets/lava_monster.png', (canvas) => {
+      this.#lavaSprite = canvas;
+      this.#lavaSpriteLoaded = true;
+    });
+    this.#loadTransparentSprite('assets/alien_crab.png', (canvas) => {
+      this.#crabSprite = canvas;
+      this.#crabSpriteLoaded = true;
+    });
   }
 
   #loadTransparentSprite(src, callback) {
@@ -103,7 +121,6 @@ export default class RunnerGame {
         const imgData = ctx.getImageData(0, 0, img.width, img.height);
         const data = imgData.data;
 
-        // Make white background transparent (Chroma Key)
         for (let i = 0; i < data.length; i += 4) {
           const r = data[i];
           const g = data[i + 1];
@@ -155,7 +172,7 @@ export default class RunnerGame {
     this.#speed = 160;
     this.#distance = 0;
     this.#spawnTimer = 0;
-    this.#nextSpawn = 1.4;
+    this.#nextSpawn = 1.3;
     this.#coinTimer = 0;
     this.#shakeAmount = 0;
 
@@ -247,7 +264,6 @@ export default class RunnerGame {
       this.#player.grounded = false;
       this.#player.jumpsLeft--;
 
-      // Jump Dust FX
       for (let i = 0; i < 8; i++) {
         this.#particles.push({
           x: this.#player.x + this.#player.w / 2,
@@ -302,12 +318,11 @@ export default class RunnerGame {
 
     if (this.#state === 'GAMEOVER') return;
 
-    // Timers & Anim
     this.#player.animFrame += dt * 14;
     if (this.#player.invulnerableTimer > 0) this.#player.invulnerableTimer -= dt;
     if (this.#player.starTimer > 0) this.#player.starTimer -= dt;
 
-    // CROUCH / DUCK MECHANIC (Baixar)
+    // CROUCH MECHANIC
     if (this.#downPressed && this.#player.grounded && !this.#player.isFallingInGap) {
       if (!this.#player.isCrouching) {
         this.#player.isCrouching = true;
@@ -320,7 +335,7 @@ export default class RunnerGame {
       this.#player.y = this.#groundY - 44;
     }
 
-    // HORIZONTAL MOVEMENT CONTROLS
+    // MOVEMENT
     let moveVx = 0;
     if (this.#leftPressed) moveVx = -190;
     if (this.#rightPressed) moveVx = 220;
@@ -338,7 +353,7 @@ export default class RunnerGame {
     this.#score = Math.floor(this.#distance / 10) + this.#coins * 10;
     if (this.#callbacks.onScoreChange) this.#callbacks.onScoreChange(this.#score);
 
-    // Check Gaps
+    // Gaps
     const pxCenter = this.#player.x + this.#player.w / 2;
     let overGap = false;
     for (const g of this.#gaps) {
@@ -348,7 +363,7 @@ export default class RunnerGame {
       }
     }
 
-    // Check Platforms
+    // Platforms
     let landedOnPlatform = false;
     for (const p of this.#platforms) {
       if (pxCenter > p.x && pxCenter < p.x + p.w) {
@@ -417,7 +432,7 @@ export default class RunnerGame {
     this.#spawnTimer += dt;
     if (this.#spawnTimer >= this.#nextSpawn) {
       this.#spawnTimer = 0;
-      this.#nextSpawn = Math.max(0.9, 1.8 - (worldScrollSpeed / 600));
+      this.#nextSpawn = Math.max(0.85, 1.7 - (worldScrollSpeed / 600));
       this.#spawnWorldElement();
     }
 
@@ -427,7 +442,7 @@ export default class RunnerGame {
       this.#spawnCoinGroup();
     }
 
-    // Updates
+    // Entity updates
     for (let i = this.#gaps.length - 1; i >= 0; i--) {
       const g = this.#gaps[i];
       g.x -= worldScrollSpeed * dt;
@@ -445,11 +460,16 @@ export default class RunnerGame {
       const e = this.#enemies[i];
       e.x -= (worldScrollSpeed + (e.walkSpeed || 30)) * dt;
       e.anim += dt * 8;
+
+      if (e.type === 'drone') {
+        e.y = (this.#groundY - 65) + Math.sin(e.anim * 0.5) * 15;
+      }
       if (e.x + e.w < -40) this.#enemies.splice(i, 1);
     }
     for (let i = this.#obstacles.length - 1; i >= 0; i--) {
       const obs = this.#obstacles[i];
       obs.x -= worldScrollSpeed * dt;
+      obs.anim = (obs.anim || 0) + dt * 6;
       if (obs.x + obs.w < -40) this.#obstacles.splice(i, 1);
     }
     for (let i = this.#coinsList.length - 1; i >= 0; i--) {
@@ -477,7 +497,8 @@ export default class RunnerGame {
   #spawnWorldElement() {
     const rnd = Math.random();
 
-    if (rnd < 0.35) {
+    if (rnd < 0.30) {
+      // Pitfall Lava Gap + Moving Platform
       const gapW = 60 + Math.random() * 30;
       const gapX = this.#width + 40;
       this.#gaps.push({ x: gapX, w: gapW });
@@ -489,9 +510,10 @@ export default class RunnerGame {
         time: Math.random() * Math.PI,
         moveVx: 0
       });
-    } else if (rnd < 0.70) {
-      const isShroom = Math.random() < 0.55;
-      if (isShroom) {
+    } else if (rnd < 0.68) {
+      // Spawn 1 of 5 ENEMY TYPES (shroom, turtle, drone, lava, crab)
+      const enemyRnd = Math.random();
+      if (enemyRnd < 0.25) {
         this.#enemies.push({
           type: 'shroom',
           x: this.#width + 40,
@@ -499,7 +521,7 @@ export default class RunnerGame {
           w: 28, h: 28,
           walkSpeed: 25, anim: 0
         });
-      } else {
+      } else if (enemyRnd < 0.45) {
         this.#enemies.push({
           type: 'turtle',
           x: this.#width + 40,
@@ -507,15 +529,48 @@ export default class RunnerGame {
           w: 28, h: 24,
           walkSpeed: 35, anim: 0
         });
+      } else if (enemyRnd < 0.65) {
+        // Flying Drone Sentinel
+        this.#enemies.push({
+          type: 'drone',
+          x: this.#width + 40,
+          y: this.#groundY - 65,
+          w: 32, h: 26,
+          walkSpeed: 45, anim: 0
+        });
+      } else if (enemyRnd < 0.85) {
+        // Alien Crab Walker
+        this.#enemies.push({
+          type: 'crab',
+          x: this.#width + 40,
+          y: this.#groundY - 26,
+          w: 30, h: 26,
+          walkSpeed: 55, anim: 0
+        });
+      } else {
+        // Lava Monster
+        this.#enemies.push({
+          type: 'lava',
+          x: this.#width + 40,
+          y: this.#groundY - 32,
+          w: 32, h: 32,
+          walkSpeed: 20, anim: 0
+        });
       }
     } else {
-      const isCrate = Math.random() < 0.5;
-      this.#obstacles.push({
-        type: isCrate ? 'crate' : 'brick',
-        x: this.#width + 40,
-        y: isCrate ? this.#groundY - 30 : this.#groundY - 65,
-        w: 30, h: 30
-      });
+      // Spawn 1 of 4 OBSTACLE TYPES (crate, brick, laser, spiked_boulder)
+      const obsRnd = Math.random();
+      if (obsRnd < 0.3) {
+        this.#obstacles.push({ type: 'crate', x: this.#width + 40, y: this.#groundY - 30, w: 30, h: 30 });
+      } else if (obsRnd < 0.55) {
+        this.#obstacles.push({ type: 'brick', x: this.#width + 40, y: this.#groundY - 65, w: 30, h: 30 });
+      } else if (obsRnd < 0.80) {
+        // HIGH-VOLTAGE LASER BARRIER (MUST CROUCH UNDERNEATH!)
+        this.#obstacles.push({ type: 'laser', x: this.#width + 40, y: this.#groundY - 50, w: 45, h: 18, anim: 0 });
+      } else {
+        // SPIKED METAL BOULDER
+        this.#obstacles.push({ type: 'spiked_boulder', x: this.#width + 40, y: this.#groundY - 34, w: 34, h: 34, anim: 0 });
+      }
     }
   }
 
@@ -582,7 +637,7 @@ export default class RunnerGame {
       }
     }
 
-    // Enemies
+    // Enemies (5 Types)
     for (let i = this.#enemies.length - 1; i >= 0; i--) {
       const e = this.#enemies[i];
       if (px < e.x + e.w && px + pw > e.x && py < e.y + e.h && py + ph > e.y) {
@@ -614,7 +669,7 @@ export default class RunnerGame {
       }
     }
 
-    // Obstacles
+    // Obstacles (Crate, Brick, Laser, Spiked Boulder)
     for (let i = this.#obstacles.length - 1; i >= 0; i--) {
       const obs = this.#obstacles[i];
       if (px < obs.x + obs.w && px + pw > obs.x && py < obs.y + obs.h && py + ph > obs.y) {
@@ -622,7 +677,18 @@ export default class RunnerGame {
           this.#createSquishParticles(obs.x + obs.w / 2, obs.y + obs.h / 2, '#b45309');
           this.#obstacles.splice(i, 1);
         } else if (this.#player.invulnerableTimer <= 0) {
-          if (this.#player.vy > 0 && py + ph - this.#player.vy * 0.1 <= obs.y + 8) {
+          if (obs.type === 'laser') {
+            // Must crouch under laser! If standing, take damage!
+            if (!this.#player.isCrouching) {
+              this.#lives--;
+              this.#shakeAmount = 15;
+              this.#player.invulnerableTimer = 1.5;
+              if (this.#lives <= 0) {
+                this.#state = 'GAMEOVER';
+                if (this.#callbacks.onGameOver) this.#callbacks.onGameOver(this.#score);
+              }
+            }
+          } else if (this.#player.vy > 0 && py + ph - this.#player.vy * 0.1 <= obs.y + 8) {
             this.#player.y = obs.y - (this.#player.isCrouching ? 24 : 44);
             this.#player.vy = 0;
             this.#player.grounded = true;
@@ -736,37 +802,12 @@ export default class RunnerGame {
       this.#ctx.restore();
     }
 
-    // Obstacles
+    // Obstacles (4 Types: Crate, Brick, Laser, Spiked Boulder)
     for (const obs of this.#obstacles) {
-      this.#ctx.save();
-      this.#ctx.translate(obs.x, obs.y);
-
-      if (obs.type === 'brick') {
-        this.#ctx.fillStyle = '#b45309';
-        this.#ctx.strokeStyle = '#78350f';
-        this.#ctx.lineWidth = 2;
-        this.#ctx.fillRect(0, 0, obs.w, obs.h);
-        this.#ctx.strokeRect(0, 0, obs.w, obs.h);
-        this.#ctx.strokeStyle = '#78350f';
-        this.#ctx.beginPath();
-        this.#ctx.moveTo(0, obs.h / 2); this.#ctx.lineTo(obs.w, obs.h / 2);
-        this.#ctx.moveTo(obs.w / 2, 0); this.#ctx.lineTo(obs.w / 2, obs.h / 2);
-        this.#ctx.stroke();
-      } else if (obs.type === 'crate') {
-        this.#ctx.fillStyle = '#d97706';
-        this.#ctx.strokeStyle = '#78350f';
-        this.#ctx.lineWidth = 2;
-        this.#ctx.fillRect(0, 0, obs.w, obs.h);
-        this.#ctx.strokeRect(0, 0, obs.w, obs.h);
-        this.#ctx.beginPath();
-        this.#ctx.moveTo(2, 2); this.#ctx.lineTo(obs.w - 2, obs.h - 2);
-        this.#ctx.moveTo(obs.w - 2, 2); this.#ctx.lineTo(2, obs.h - 2);
-        this.#ctx.stroke();
-      }
-      this.#ctx.restore();
+      this.#drawObstacle(obs);
     }
 
-    // Enemies
+    // Enemies (5 Types)
     for (const e of this.#enemies) {
       this.#drawEnemy(e);
     }
@@ -925,6 +966,70 @@ export default class RunnerGame {
     this.#ctx.restore();
   }
 
+  #drawObstacle(obs) {
+    this.#ctx.save();
+    this.#ctx.translate(obs.x, obs.y);
+
+    if (obs.type === 'brick') {
+      this.#ctx.fillStyle = '#b45309';
+      this.#ctx.strokeStyle = '#78350f';
+      this.#ctx.lineWidth = 2;
+      this.#ctx.fillRect(0, 0, obs.w, obs.h);
+      this.#ctx.strokeRect(0, 0, obs.w, obs.h);
+      this.#ctx.strokeStyle = '#78350f';
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(0, obs.h / 2); this.#ctx.lineTo(obs.w, obs.h / 2);
+      this.#ctx.moveTo(obs.w / 2, 0); this.#ctx.lineTo(obs.w / 2, obs.h / 2);
+      this.#ctx.stroke();
+    } else if (obs.type === 'crate') {
+      this.#ctx.fillStyle = '#d97706';
+      this.#ctx.strokeStyle = '#78350f';
+      this.#ctx.lineWidth = 2;
+      this.#ctx.fillRect(0, 0, obs.w, obs.h);
+      this.#ctx.strokeRect(0, 0, obs.w, obs.h);
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(2, 2); this.#ctx.lineTo(obs.w - 2, obs.h - 2);
+      this.#ctx.moveTo(obs.w - 2, 2); this.#ctx.lineTo(2, obs.h - 2);
+      this.#ctx.stroke();
+    } else if (obs.type === 'laser') {
+      // HIGH-VOLTAGE LASER BARRIER (MUST CROUCH UNDERNEATH!)
+      this.#ctx.shadowBlur = 12;
+      this.#ctx.shadowColor = '#38bdf8';
+      this.#ctx.fillStyle = 'rgba(56, 189, 248, 0.85)';
+      this.#ctx.fillRect(0, 4, obs.w, 10);
+
+      // Flashing Core Beam
+      const flash = Math.floor(obs.anim * 10) % 2 === 0;
+      this.#ctx.fillStyle = flash ? '#ffffff' : '#06b6d4';
+      this.#ctx.fillRect(0, 7, obs.w, 4);
+
+      // Posts on sides
+      this.#ctx.fillStyle = '#1e293b';
+      this.#ctx.fillRect(-4, 0, 6, obs.h);
+      this.#ctx.fillRect(obs.w - 2, 0, 6, obs.h);
+    } else if (obs.type === 'spiked_boulder') {
+      // SPIKED METAL BOULDER
+      this.#ctx.translate(obs.w / 2, obs.h / 2);
+      this.#ctx.rotate(obs.anim * 2);
+      this.#ctx.fillStyle = '#475569';
+      this.#ctx.beginPath();
+      this.#ctx.arc(0, 0, obs.w / 2, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      // Spikes
+      this.#ctx.fillStyle = '#e2e8f0';
+      for (let i = 0; i < 8; i++) {
+        const a = (i * Math.PI * 2) / 8;
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(Math.cos(a) * (obs.w / 2), Math.sin(a) * (obs.h / 2));
+        this.#ctx.lineTo(Math.cos(a) * (obs.w / 2 + 6), Math.sin(a) * (obs.h / 2 + 6));
+        this.#ctx.stroke();
+      }
+    }
+
+    this.#ctx.restore();
+  }
+
   #drawEnemy(e) {
     this.#ctx.save();
     this.#ctx.translate(e.x, e.y);
@@ -936,27 +1041,29 @@ export default class RunnerGame {
       this.#ctx.shadowBlur = 8;
       this.#ctx.shadowColor = '#78350f';
       this.#ctx.drawImage(this.#shroomSprite, -3, waddle - 4, w, h);
-    } else if (e.type === 'shroom') {
-      const waddle = Math.sin(e.anim) * 2;
-      this.#ctx.fillStyle = '#fef3c7';
-      this.#ctx.fillRect(6, 12 + waddle, 14, 12);
-
-      this.#ctx.fillStyle = '#78350f';
+    } else if (e.type === 'drone' && this.#droneSpriteLoaded) {
+      const w = 36;
+      const h = 30;
+      this.#ctx.shadowBlur = 14;
+      this.#ctx.shadowColor = '#38bdf8';
+      this.#ctx.drawImage(this.#droneSprite, -2, -2, w, h);
+    } else if (e.type === 'lava' && this.#lavaSpriteLoaded) {
+      const w = 36;
+      const h = 36;
+      this.#ctx.shadowBlur = 14;
+      this.#ctx.shadowColor = '#ef4444';
+      this.#ctx.drawImage(this.#lavaSprite, -2, -2, w, h);
+    } else if (e.type === 'crab' && this.#crabSpriteLoaded) {
+      const w = 34;
+      const h = 30;
+      this.#ctx.shadowBlur = 10;
+      this.#ctx.shadowColor = '#dc2626';
+      this.#ctx.drawImage(this.#crabSprite, -2, -2, w, h);
+    } else {
+      // Fallback shapes
+      this.#ctx.fillStyle = '#ef4444';
       this.#ctx.beginPath();
-      this.#ctx.arc(13, 10 + waddle, 13, Math.PI, 0);
-      this.#ctx.fill();
-    } else if (e.type === 'turtle') {
-      const walkAnim = Math.floor(e.anim) % 2 === 0 ? 0 : 2;
-      this.#ctx.fillStyle = '#22c55e';
-      this.#ctx.beginPath();
-      this.#ctx.arc(14, 12, 12, Math.PI, 0);
-      this.#ctx.fill();
-
-      this.#ctx.fillStyle = '#facc15';
-      this.#ctx.beginPath();
-      this.#ctx.moveTo(6, 4); this.#ctx.lineTo(8, 0); this.#ctx.lineTo(10, 4);
-      this.#ctx.moveTo(12, 2); this.#ctx.lineTo(14, -2); this.#ctx.lineTo(16, 2);
-      this.#ctx.moveTo(18, 4); this.#ctx.lineTo(20, 0); this.#ctx.lineTo(22, 4);
+      this.#ctx.arc(e.w / 2, e.h / 2, e.w / 2, 0, Math.PI * 2);
       this.#ctx.fill();
     }
 
@@ -973,7 +1080,6 @@ export default class RunnerGame {
     }
 
     if (this.#heroSpriteLoaded) {
-      // Draw High-Definition Original Adventurer Hero Sprite!
       const w = 46;
       const h = this.#player.isCrouching ? 26 : 46;
       const bob = this.#player.grounded ? Math.sin(this.#player.animFrame) * 2 : 0;
@@ -981,7 +1087,6 @@ export default class RunnerGame {
       this.#ctx.shadowColor = '#38bdf8';
       this.#ctx.drawImage(this.#heroSprite, -8, bob - 2, w, h);
     } else {
-      // Fallback vector drawing
       this.#ctx.fillStyle = '#38bdf8';
       this.#ctx.fillRect(0, 0, 30, this.#player.isCrouching ? 24 : 44);
     }
