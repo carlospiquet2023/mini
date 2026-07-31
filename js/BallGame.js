@@ -195,19 +195,18 @@ export default class BallGame {
     const W = this.#W;
     const H = this.#H;
 
-    // Walls
-    const wallOpts = { isStatic: true, restitution: 0.4, render: { visible: false } };
-    const ceilingOpts = {
-      isStatic: true, restitution: 0.5,
-      render: { fillStyle: 'rgba(30, 41, 59, 0.5)' }
-    };
+    // Extra thick solid walls & ceiling to prevent physics tunneling on mobile
+    const wallOpts = { isStatic: true, restitution: 0.5, render: { visible: false } };
 
     World.add(this.#world, [
-      Bodies.rectangle(W / 2, H + 10, W, 20, wallOpts),
-      Bodies.rectangle(W / 2, -5, W, 30, ceilingOpts),
-      Bodies.rectangle(W / 2, -50, W, 80, wallOpts),
-      Bodies.rectangle(-10, H / 2, 20, H, wallOpts),
-      Bodies.rectangle(W + 10, H / 2, 20, H, wallOpts),
+      // Floor (bottom)
+      Bodies.rectangle(W / 2, H + 75, W + 300, 150, wallOpts),
+      // Ceiling (top)
+      Bodies.rectangle(W / 2, -75, W + 300, 150, wallOpts),
+      // Left Wall
+      Bodies.rectangle(-75, H / 2, 150, H + 300, wallOpts),
+      // Right Wall
+      Bodies.rectangle(W + 75, H / 2, 150, H + 300, wallOpts),
     ]);
 
     // Holes
@@ -487,10 +486,44 @@ export default class BallGame {
 
     for (const ball of this.#balls) {
       if (ball.isScored) continue;
+
+      // Speed limiting
       const spd = Math.sqrt(ball.velocity.x ** 2 + ball.velocity.y ** 2);
       if (spd > maxSpeed) {
         const s = maxSpeed / spd;
         Body.setVelocity(ball, { x: ball.velocity.x * s, y: ball.velocity.y * s });
+      }
+
+      // Hard Ceiling & Wall Boundaries Clamp (Prevents tunneling through ceiling on mobile!)
+      const r = ball.circleRadius || 16;
+
+      // Ceiling clamp (Y top edge)
+      if (ball.position.y < r + 2) {
+        Body.setPosition(ball, { x: ball.position.x, y: r + 2 });
+        if (ball.velocity.y < 0) {
+          Body.setVelocity(ball, { x: ball.velocity.x, y: Math.abs(ball.velocity.y) * 0.4 });
+        }
+      }
+      // Floor clamp (Y bottom edge)
+      if (ball.position.y > this.#H - r - 2) {
+        Body.setPosition(ball, { x: ball.position.x, y: this.#H - r - 2 });
+        if (ball.velocity.y > 0) {
+          Body.setVelocity(ball, { x: ball.velocity.x, y: -Math.abs(ball.velocity.y) * 0.4 });
+        }
+      }
+      // Left Wall clamp
+      if (ball.position.x < r + 2) {
+        Body.setPosition(ball, { x: r + 2, y: ball.position.y });
+        if (ball.velocity.x < 0) {
+          Body.setVelocity(ball, { x: Math.abs(ball.velocity.x) * 0.4, y: ball.velocity.y });
+        }
+      }
+      // Right Wall clamp
+      else if (ball.position.x > this.#W - r - 2) {
+        Body.setPosition(ball, { x: this.#W - r - 2, y: ball.position.y });
+        if (ball.velocity.x > 0) {
+          Body.setVelocity(ball, { x: -Math.abs(ball.velocity.x) * 0.4, y: ball.velocity.y });
+        }
       }
     }
   }
