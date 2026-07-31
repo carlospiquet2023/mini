@@ -961,13 +961,49 @@
     gap: 12px;
     cursor: pointer;
     text-align: left;
-    transition: background 0.2s, transform 0.15s, border-color 0.2s;
+    transition: background 0.2s, transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  }
+
+  /* Colorful Vibrant Game Cards in Selection Modal */
+  .game-card-btn#select-worm {
+    background: linear-gradient(135deg, #15803d, #14532d);
+    border: 1.5px solid #4ade80;
+    box-shadow: 0 4px 12px rgba(22, 101, 52, 0.4);
+  }
+  .game-card-btn#select-space {
+    background: linear-gradient(135deg, #6b21a8, #3b0764);
+    border: 1.5px solid #c084fc;
+    box-shadow: 0 4px 12px rgba(107, 33, 168, 0.4);
+  }
+  .game-card-btn#select-pacman {
+    background: linear-gradient(135deg, #ca8a04, #713f12);
+    border: 1.5px solid #facc15;
+    box-shadow: 0 4px 12px rgba(202, 138, 4, 0.4);
+  }
+  .game-card-btn#select-tetris {
+    background: linear-gradient(135deg, #0891b2, #155e75);
+    border: 1.5px solid #67e8f9;
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4);
+  }
+  .game-card-btn#select-runner {
+    background: linear-gradient(135deg, #0284c7, #0c4a6e);
+    border: 1.5px solid #38bdf8;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+  }
+
+  /* 🧜‍♀️ SEREIA & BORBOLETA (ROSA / MAGENTA VIBRANTE) */
+  .game-card-btn#select-mermaid {
+    background: linear-gradient(135deg, #be185d, #831843);
+    border: 1.5px solid #f472b6;
+    box-shadow: 0 4px 14px rgba(190, 24, 93, 0.5);
+  }
+  .game-card-btn#select-mermaid .game-card-desc {
+    color: #fbcfe8;
   }
 
   .game-card-btn:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: #38bdf8;
-    transform: translateX(4px);
+    transform: translateX(4px) scale(1.02);
+    filter: brightness(1.15);
   }
 
   .game-card-icon {
