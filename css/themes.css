@@ -1,0 +1,190 @@
+/* ===========================================
+   THEME SYSTEM — CSS Custom Properties + @property
+   Advanced 2026: @property, color-mix(), nesting
+   =========================================== */
+
+@layer themes {
+
+  /* Animatable custom properties (2026) */
+  @property --glow-intensity {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0.5;
+  }
+
+  @property --pulse-scale {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 1;
+  }
+
+  @property --theme-hue {
+    syntax: '<angle>';
+    inherits: true;
+    initial-value: 217deg;
+  }
+
+  /* ========================
+     DEFAULT THEME (Underwater Blue)
+     ======================== */
+  :root,
+  [data-theme="default"] {
+    --console-bg: #3b82f6;
+    --console-bg-light: #60a5fa;
+    --console-border: #1d4ed8;
+    --console-deep: #1e40af;
+    --console-gradient: linear-gradient(145deg, #4a92ff, #2563eb);
+
+    --btn-start: #ff6b35;
+    --btn-end: #ff4500;
+    --btn-shadow: #cc3700;
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+    --btn-active-shadow: rgba(0, 0, 0, 0.3);
+
+    --screen-border: rgba(59, 130, 246, 0.5);
+    --screen-glow: rgba(59, 130, 246, 0.3);
+
+    --selector-bg: rgba(255, 255, 255, 0.9);
+    --selector-border: #1d4ed8;
+    --selector-glow: rgba(255, 255, 255, 0.4);
+    --selector-hover-glow: rgba(255, 255, 255, 0.8);
+
+    --name-color: #ffffff;
+    --name-shadow: rgba(0, 0, 0, 0.3);
+
+    --decor-line: rgba(255, 255, 255, 0.4);
+    --decor-stripe-start: rgba(255, 255, 255, 0.1);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(255, 255, 255, 0.95);
+
+    --theme-hue: 217deg;
+  }
+
+  /* ========================
+     WORM THEME (Earth / Nature)
+     ======================== */
+  [data-theme="worm"] {
+    --console-bg: #2d5016;
+    --console-bg-light: #4ade80;
+    --console-border: #1a3a0a;
+    --console-deep: #14532d;
+    --console-gradient: linear-gradient(145deg, #3d6b1e, #1a4009);
+
+    --btn-start: #65a30d;
+    --btn-end: #4d7c0f;
+    --btn-shadow: #365314;
+    --btn-highlight: rgba(255, 255, 255, 0.25);
+
+    --screen-border: rgba(74, 222, 128, 0.4);
+    --screen-glow: rgba(74, 222, 128, 0.2);
+
+    --selector-bg: rgba(74, 222, 128, 0.3);
+    --selector-border: #14532d;
+    --selector-glow: rgba(74, 222, 128, 0.4);
+    --selector-hover-glow: rgba(74, 222, 128, 0.8);
+
+    --name-color: #86efac;
+    --name-shadow: rgba(0, 0, 0, 0.5);
+
+    --decor-line: rgba(74, 222, 128, 0.4);
+    --decor-stripe-start: rgba(74, 222, 128, 0.08);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(74, 222, 128, 0.9);
+
+    --theme-hue: 142deg;
+  }
+
+  /* ========================
+     SPACE THEME (Cosmic Purple)
+     ======================== */
+  /* ========================
+     PACMAN THEME (Arcade Yellow)
+     ======================== */
+  [data-theme="pacman"] {
+    --console-bg: #854d0e;
+    --console-bg-light: #fde047;
+    --console-border: #713f12;
+    --console-deep: #422006;
+    --console-gradient: linear-gradient(145deg, #a16207, #422006);
+
+    --btn-start: #eab308;
+    --btn-end: #ca8a04;
+    --btn-shadow: #854d0e;
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+
+    --screen-border: rgba(250, 204, 21, 0.5);
+    --screen-glow: rgba(250, 204, 21, 0.3);
+
+    --name-color: #fef08a;
+    --name-shadow: rgba(0, 0, 0, 0.6);
+
+    --decor-line: rgba(250, 204, 21, 0.4);
+    --decor-stripe-start: rgba(250, 204, 21, 0.08);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(250, 204, 21, 0.9);
+
+    --theme-hue: 48deg;
+  }
+
+  /* ========================
+     TETRIS THEME (Cyan / Brick Game Neon)
+     ======================== */
+  [data-theme="tetris"] {
+    --console-bg: #0e7490;
+    --console-bg-light: #67e8f9;
+    --console-border: #155e75;
+    --console-deep: #083344;
+    --console-gradient: linear-gradient(145deg, #155e75, #083344);
+
+    --btn-start: #06b6d4;
+    --btn-end: #0891b2;
+    --btn-shadow: #0e7490;
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+
+    --screen-border: rgba(6, 182, 212, 0.5);
+    --screen-glow: rgba(6, 182, 212, 0.3);
+
+    --name-color: #a5f3fc;
+    --name-shadow: rgba(0, 0, 0, 0.6);
+
+    --decor-line: rgba(6, 182, 212, 0.4);
+    --decor-stripe-start: rgba(6, 182, 212, 0.08);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(6, 182, 212, 0.9);
+
+    --theme-hue: 188deg;
+  }
+
+  /* ========================
+     TRANSITION SMOOTHNESS
+     ======================== */
+  .console-top,
+  .console-bottom,
+  .game-button,
+  .selector-btn,
+  .name-banner,
+  .decor-line,
+  .screen-bezel,
+  .decor-stripe-left,
+  .decor-stripe-right {
+    transition:
+      background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      background-image 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Themed glow on screen bezel */
+  .screen-bezel {
+    box-shadow:
+      inset 0 0 30px rgba(0, 0, 0, 0.5),
+      0 0 15px var(--screen-glow);
+  }
+}
+

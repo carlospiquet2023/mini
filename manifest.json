@@ -1,0 +1,19 @@
+{
+  "name": "Carlos Piquet Games",
+  "short_name": "CP Games",
+  "description": "Console retro com 3 jogos incríveis: Bolinhas, Minhoca e Nave Espacial",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0a2e",
+  "theme_color": "#7c3aed",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

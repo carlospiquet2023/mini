@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CP Games">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="description" content="Carlos Piquet Games — Console retro com 3 jogos épicos: Bolinhas, Minhoca Voraz e Nave na Galáxia">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <title>Carlos Piquet Games</title>
+
+  <!-- CSS Architecture: Layers -->
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/animations.css">
+</head>
+<body data-theme="default">
+
+  <div class="console-wrapper">
+
+    <!-- ============================
+         CONSOLE TOP — Screen Area
+         ============================ -->
+    <div class="console-top">
+      <!-- Decorative side stripes -->
+      <div class="decor-stripe-left"></div>
+      <div class="decor-stripe-right"></div>
+
+      <!-- Screen Bezel -->
+      <div class="screen-bezel">
+
+        <!-- LAYER 1: Ball Game (default) -->
+        <div class="balls-layer" id="balls-layer">
+          <div class="balls-background" id="balls-bg"></div>
+          <canvas id="game-canvas"></canvas>
+
+          <!-- Win Overlay -->
+          <div class="win-overlay" id="win-message">
+            <h2>🎉 Parabéns!</h2>
+            <p>Você acertou todas as bolas!</p>
+            <button id="reset-button">Jogar Novamente</button>
+          </div>
+        </div>
+
+        <!-- LAYER 2: Mini-Games (snake / space / pacman / tetris) -->
+        <div class="mini-layer" id="mini-layer">
+          <canvas id="mini-canvas"></canvas>
+        </div>
+
+        <!-- Screen Flash (theme transition effect) -->
+        <div class="screen-flash" id="screen-flash"></div>
+
+      </div>
+    </div>
+
+    <!-- ============================
+         CONSOLE BOTTOM — Controls
+         ============================ -->
+    <div class="console-bottom">
+
+      <!-- Brand & Info Bar -->
+      <div class="brand-bar">
+        <!-- Visor Digital LCD do Placar (Esquerda) -->
+        <div class="score-digital-box" id="score-box" title="Score">
+          <span class="score-lbl" id="score-lbl">SCORE</span>
+          <span class="score-val" id="score">0</span>
+        </div>
+
+        <!-- Assinatura Elegante da Marca (Centro) -->
+        <div class="name-banner">
+          <span>Carlos Piquet</span>
+        </div>
+
+        <!-- Botão Voltar (Na Barra da Marca conforme indicado pela seta vermelha) -->
+        <button class="back-pill-btn mini-only-ui" id="back-btn" aria-label="Voltar ao menu" title="Voltar ao Menu">
+          🔙 Voltar
+        </button>
+
+        <!-- Visor Digital LCD do Nível/Status (Direita) -->
+        <div class="status-digital-box" id="status-box" title="Status / Nível">
+          <span class="status-lbl" id="status-lbl">LEVEL</span>
+          <span class="status-val" id="status-val">1</span>
+          <button class="mini-reset-btn" id="reset-game" aria-label="Reiniciar jogo" title="Reiniciar Jogo">
+            <span class="reset-icon">🔄</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls Row -->
+      <div class="controls-row">
+
+        <!-- Left Controls Container -->
+        <div class="left-controls">
+          <!-- D-PAD Cross (Mini-Games Only) -->
+          <div class="dpad-container mini-only-ui">
+            <div class="dpad-cross">
+              <button id="dpad-up" class="dpad-btn dpad-up" aria-label="Cima" title="Cima (▲)"></button>
+              <button id="dpad-left" class="dpad-btn dpad-left" aria-label="Esquerda" title="Esquerda (◄)"></button>
+              <div class="dpad-center">❖</div>
+              <button id="dpad-right" class="dpad-btn dpad-right" aria-label="Direita" title="Direita (►)"></button>
+              <button id="dpad-down" class="dpad-btn dpad-down" aria-label="Baixo" title="Baixo (▼)"></button>
+            </div>
+          </div>
+
+          <!-- Big Left Pump Button (Ball Game Only) -->
+          <div class="action-btn-wrapper ball-only-ui">
+            <button id="button-a" class="rotate-button" aria-label="Jato Esquerdo" title="Jato Esquerdo"></button>
+          </div>
+        </div>
+
+        <!-- Game Selectors (Center - 2x2 Matrix Grid) -->
+        <div class="selector-group">
+          <button id="select-worm" class="selector-btn" aria-label="Jogo da Minhoca" title="Minhoca Voraz">
+            <span class="selector-icon">🐛</span>
+          </button>
+          <button id="select-space" class="selector-btn" aria-label="Nave na Galáxia" title="Nave na Galáxia">
+            <span class="selector-icon">🚀</span>
+          </button>
+          <button id="select-pacman" class="selector-btn" aria-label="Pac-Man" title="Pac-Man Retro">
+            <span class="selector-icon">🟡</span>
+          </button>
+          <button id="select-tetris" class="selector-btn" aria-label="Tetris" title="Tetris Block Game">
+            <span class="selector-icon">🧱</span>
+          </button>
+        </div>
+
+        <!-- Right Controls Container -->
+        <div class="right-controls">
+          <div class="action-btn-wrapper">
+            <div class="rotate-label mini-only-ui">
+              <span class="rotate-arrow">↶</span>
+              <span class="rotate-text">ROTATE</span>
+            </div>
+            <button id="button-b" class="rotate-button" aria-label="Jato Direito / Ação" title="Jato Direito / Ação"></button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Matter.js for Ball Game physics -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+  <!-- App Entry Point (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
