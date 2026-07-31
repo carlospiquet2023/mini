@@ -478,45 +478,68 @@ export default class MermaidGame {
 
     // Deep Ocean Background Gradient
     const oceanGrad = this.#ctx.createLinearGradient(0, 0, 0, this.#height);
-    oceanGrad.addColorStop(0, '#0284c7');
-    oceanGrad.addColorStop(0.35, '#0369a1');
-    oceanGrad.addColorStop(0.7, '#075985');
-    oceanGrad.addColorStop(1, '#0c4a6e');
+    oceanGrad.addColorStop(0, '#0369a1');
+    oceanGrad.addColorStop(0.3, '#075985');
+    oceanGrad.addColorStop(0.7, '#0c4a6e');
+    oceanGrad.addColorStop(1, '#082f49');
     this.#ctx.fillStyle = oceanGrad;
     this.#ctx.fillRect(0, 0, this.#width, this.#height);
 
-    // Sun Rays
+    // Dynamic Sunbeams (Raios de Sol Submarinos)
     this.#ctx.save();
     this.#ctx.globalCompositeOperation = 'screen';
     for (const r of this.#lightRays) {
+      const sway = Math.sin(this.#worldTime * 1.5 + r.x) * 15;
       const rayGrad = this.#ctx.createLinearGradient(r.x, 0, r.x + r.w, this.#height);
-      rayGrad.addColorStop(0, `rgba(186, 230, 253, ${r.alpha})`);
+      rayGrad.addColorStop(0, `rgba(186, 230, 253, ${r.alpha + 0.05})`);
       rayGrad.addColorStop(1, 'rgba(186, 230, 253, 0)');
       this.#ctx.fillStyle = rayGrad;
       this.#ctx.beginPath();
-      this.#ctx.moveTo(r.x, 0);
-      this.#ctx.lineTo(r.x + r.w, 0);
-      this.#ctx.lineTo(r.x + r.w * 2, this.#height);
-      this.#ctx.lineTo(r.x + r.w * 0.5, this.#height);
+      this.#ctx.moveTo(r.x + sway, 0);
+      this.#ctx.lineTo(r.x + r.w + sway, 0);
+      this.#ctx.lineTo(r.x + r.w * 2 + sway * 1.5, this.#height);
+      this.#ctx.lineTo(r.x + r.w * 0.5 + sway * 1.5, this.#height);
       this.#ctx.closePath();
       this.#ctx.fill();
     }
     this.#ctx.restore();
 
-    // Sandy Ocean Floor
-    const sandGrad = this.#ctx.createLinearGradient(0, this.#height - 50, 0, this.#height);
+    // Sandy Ocean Floor with Corals & Kelp (Fundo do Mar com Recifes de Corais)
+    const sandGrad = this.#ctx.createLinearGradient(0, this.#height - 55, 0, this.#height);
     sandGrad.addColorStop(0, '#0f766e');
     sandGrad.addColorStop(1, '#115e59');
     this.#ctx.fillStyle = sandGrad;
     this.#ctx.beginPath();
-    this.#ctx.moveTo(0, this.#height - 40);
-    for (let x = 0; x <= this.#width; x += 20) {
-      const y = this.#height - 40 + Math.sin(x * 0.05 + this.#worldTime) * 4;
+    this.#ctx.moveTo(0, this.#height - 45);
+    for (let x = 0; x <= this.#width; x += 15) {
+      const y = this.#height - 45 + Math.sin(x * 0.04 + this.#worldTime) * 5;
       this.#ctx.lineTo(x, y);
     }
     this.#ctx.lineTo(this.#width, this.#height);
     this.#ctx.lineTo(0, this.#height);
     this.#ctx.fill();
+
+    // Seaweed & Kelp Forest (Algas Marítimas Ondulantes)
+    this.#ctx.save();
+    this.#ctx.strokeStyle = '#15803d';
+    this.#ctx.lineWidth = 4;
+    this.#ctx.lineCap = 'round';
+    for (let x = 20; x < this.#width; x += 35) {
+      const kelpH = 40 + (x % 3) * 15;
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(x, this.#height - 35);
+      this.#ctx.quadraticCurveTo(
+        x + Math.sin(this.#worldTime * 2 + x) * 12,
+        this.#height - 35 - kelpH / 2,
+        x + Math.cos(this.#worldTime * 2 + x) * 8,
+        this.#height - 35 - kelpH
+      );
+      this.#ctx.stroke();
+    }
+    this.#ctx.restore();
+
+    // Colorful Coral Reefs (Corais Coloridos no Solo)
+    this.#drawCoralReefs();
 
     // Ambient Bubbles & Fish
     for (const b of this.#bubbles) {
@@ -727,6 +750,34 @@ export default class MermaidGame {
       }
     }
 
+    this.#ctx.restore();
+  }
+
+  #drawCoralReefs() {
+    this.#ctx.save();
+    // Magenta Brain Coral
+    this.#ctx.fillStyle = '#ec4899';
+    this.#ctx.beginPath();
+    this.#ctx.arc(45, this.#height - 35, 14, Math.PI, 0);
+    this.#ctx.fill();
+
+    // Cyan Sea Fan Coral
+    this.#ctx.fillStyle = '#06b6d4';
+    this.#ctx.beginPath();
+    this.#ctx.arc(130, this.#height - 32, 18, Math.PI, 0);
+    this.#ctx.fill();
+
+    // Golden Anemone Coral
+    this.#ctx.fillStyle = '#eab308';
+    this.#ctx.beginPath();
+    this.#ctx.arc(215, this.#height - 36, 16, Math.PI, 0);
+    this.#ctx.fill();
+
+    // Purple Coral Cluster
+    this.#ctx.fillStyle = '#a855f7';
+    this.#ctx.beginPath();
+    this.#ctx.arc(270, this.#height - 30, 12, Math.PI, 0);
+    this.#ctx.fill();
     this.#ctx.restore();
   }
 }
