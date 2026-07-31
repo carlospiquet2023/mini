@@ -157,6 +157,34 @@
     --transition-flash: rgba(6, 182, 212, 0.9);
 
     --theme-hue: 188deg;
+  /* ========================
+     RUNNER THEME (Sky Runner Emerald / Cyan)
+     ======================== */
+  [data-theme="runner"] {
+    --console-bg: #0369a1;
+    --console-bg-light: #38bdf8;
+    --console-border: #075985;
+    --console-deep: #0c4a6e;
+    --console-gradient: linear-gradient(145deg, #0284c7, #0369a1);
+
+    --btn-start: #10b981;
+    --btn-end: #059669;
+    --btn-shadow: #047857;
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+
+    --screen-border: rgba(56, 189, 248, 0.5);
+    --screen-glow: rgba(56, 189, 248, 0.3);
+
+    --name-color: #bae6fd;
+    --name-shadow: rgba(0, 0, 0, 0.6);
+
+    --decor-line: rgba(56, 189, 248, 0.4);
+    --decor-stripe-start: rgba(56, 189, 248, 0.08);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(56, 189, 248, 0.9);
+
+    --theme-hue: 199deg;
   }
 
   /* ========================

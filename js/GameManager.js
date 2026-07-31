@@ -10,6 +10,7 @@ import SnakeGame from './SnakeGame.js';
 import SpaceGame from './SpaceGame.js';
 import PacmanGame from './PacmanGame.js';
 import TetrisGame from './TetrisGame.js';
+import RunnerGame from './RunnerGame.js';
 
 export default class GameManager {
   // DOM elements
@@ -33,6 +34,7 @@ export default class GameManager {
   #selectSpace;
   #selectPacman;
   #selectTetris;
+  #selectRunner;
   #statusLbl;
   #statusVal;
 
@@ -45,9 +47,10 @@ export default class GameManager {
   #spaceGame;
   #pacmanGame;
   #tetrisGame;
+  #runnerGame;
 
   // State
-  #activeGame = 'balls'; // 'balls' | 'worm' | 'space' | 'pacman' | 'tetris'
+  #activeGame = 'balls'; // 'balls' | 'worm' | 'space' | 'pacman' | 'tetris' | 'runner'
   #miniW = 0;
   #miniH = 0;
 
@@ -91,6 +94,7 @@ export default class GameManager {
     this.#selectSpace = document.getElementById('select-space');
     this.#selectPacman = document.getElementById('select-pacman');
     this.#selectTetris = document.getElementById('select-tetris');
+    this.#selectRunner = document.getElementById('select-runner');
     this.#statusLbl = document.getElementById('status-lbl');
     this.#statusVal = document.getElementById('status-val');
   }
@@ -171,6 +175,16 @@ export default class GameManager {
       },
       onGameOver: (score) => {}
     });
+
+    // Runner Game
+    this.#runnerGame = new RunnerGame(this.#miniCanvas, this.#miniCtx, {
+      onScoreChange: (score) => {
+        this.#scoreEl.textContent = score;
+        this.#statusLbl.textContent = 'DIST';
+        this.#statusVal.textContent = Math.floor(score);
+      },
+      onGameOver: (score) => {}
+    });
   }
 
   // ==========================================
@@ -236,6 +250,8 @@ export default class GameManager {
         this.#pacmanGame.restart?.();
       } else if (this.#activeGame === 'tetris') {
         this.#tetrisGame.restart?.();
+      } else if (this.#activeGame === 'runner') {
+        this.#runnerGame.restart?.();
       }
     }, { signal });
 
@@ -258,6 +274,7 @@ export default class GameManager {
     this.#selectSpace.addEventListener('click', () => this.#switchGame('space'), { signal });
     this.#selectPacman.addEventListener('click', () => this.#switchGame('pacman'), { signal });
     this.#selectTetris.addEventListener('click', () => this.#switchGame('tetris'), { signal });
+    this.#selectRunner.addEventListener('click', () => this.#switchGame('runner'), { signal });
 
     // Back button
     this.#backBtn.addEventListener('click', () => this.#switchGame('balls'), { signal });
@@ -281,6 +298,8 @@ export default class GameManager {
         this.#pacmanGame.resize(this.#miniW, this.#miniH);
       } else if (this.#activeGame === 'tetris') {
         this.#tetrisGame.resize(this.#miniW, this.#miniH);
+      } else if (this.#activeGame === 'runner') {
+        this.#runnerGame.resize(this.#miniW, this.#miniH);
       }
     }, { signal });
   }
@@ -327,6 +346,7 @@ export default class GameManager {
       case 'space': return this.#spaceGame;
       case 'pacman': return this.#pacmanGame;
       case 'tetris': return this.#tetrisGame;
+      case 'runner': return this.#runnerGame;
       default: return null;
     }
   }
@@ -342,7 +362,7 @@ export default class GameManager {
     this.#getActiveGameInstance()?.stop();
 
     // Theme transition
-    const themeMap = { balls: 'default', worm: 'worm', space: 'space', pacman: 'pacman', tetris: 'tetris' };
+    const themeMap = { balls: 'default', worm: 'worm', space: 'space', pacman: 'pacman', tetris: 'tetris', runner: 'runner' };
     await this.#themeManager.setTheme(themeMap[target]);
 
     // Toggle layers
@@ -386,6 +406,12 @@ export default class GameManager {
         this.#scoreEl.textContent = this.#tetrisGame?.score || 0;
         this.#tetrisGame.resize(this.#miniW, this.#miniH);
         this.#tetrisGame.start();
+      } else if (target === 'runner') {
+        this.#statusLbl.textContent = 'DIST';
+        this.#statusVal.textContent = '0';
+        this.#scoreEl.textContent = '0';
+        this.#runnerGame.resize(this.#miniW, this.#miniH);
+        this.#runnerGame.start();
       }
     }
   }

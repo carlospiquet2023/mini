@@ -601,9 +601,10 @@
   }
 
   .selector-group {
-    display: grid;
-    grid-template-columns: repeat(2, auto);
-    gap: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 140px;
+    gap: 6px 8px;
     align-items: center;
     justify-content: center;
   }

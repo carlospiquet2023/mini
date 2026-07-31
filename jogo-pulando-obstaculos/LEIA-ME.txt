@@ -1,0 +1,22 @@
+SUPER PULO
+===========
+
+Jogo completo feito somente com HTML, CSS e JavaScript.
+
+COMO ABRIR
+1. Extraia o arquivo ZIP.
+2. Abra a pasta "jogo-pulando-obstaculos".
+3. Dê dois cliques no arquivo "index.html".
+4. O jogo abrirá no navegador.
+
+CONTROLES
+- Espaço, seta para cima ou W: pular.
+- P ou Esc: pausar.
+- No celular: botão PULAR ou toque na área do jogo.
+
+ARQUIVOS
+- index.html: estrutura do jogo.
+- style.css: visual e adaptação para celular.
+- script.js: lógica, física, obstáculos, moedas e pontuação.
+
+O jogo não depende de imagens externas, bibliotecas ou internet.
