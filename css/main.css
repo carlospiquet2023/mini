@@ -728,51 +728,60 @@
   /* ========================
      RESPONSIVE (Mobile Phones)
      ======================== */
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
+    .console-top {
+      max-height: 52vh;
+      flex: 1 1 auto;
+    }
+
     .console-bottom {
-      padding-top: 8px;
-      padding-bottom: 24px;
-      min-height: 200px;
+      padding-top: 24px;
+      padding-bottom: 48px;
+      min-height: 240px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
     }
 
     .controls-row {
-      padding: 10px 10px 14px;
+      padding: 14px 12px 18px;
       gap: 6px;
+      margin-top: -14px;
     }
 
     .left-controls,
     .right-controls {
-      min-width: 128px;
-      height: 128px;
+      min-width: 134px;
+      height: 134px;
     }
 
     .dpad-container {
-      width: 128px;
-      height: 128px;
+      width: 134px;
+      height: 134px;
     }
 
     .dpad-cross {
-      width: 124px;
-      height: 124px;
+      width: 130px;
+      height: 130px;
     }
 
     .dpad-btn {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
     }
 
     .rotate-button {
-      width: 82px;
-      height: 82px;
+      width: 86px;
+      height: 86px;
     }
 
     .game-button {
-      width: 72px;
-      height: 72px;
+      width: 76px;
+      height: 76px;
     }
 
     .more-games-pill-btn {
-      padding: 10px 22px;
+      padding: 11px 24px;
       font-size: 16px;
       border-radius: 24px;
     }
