@@ -2,7 +2,7 @@
    MermaidGame — Aventura da Sereia & Borboleta
    Realistic & Elegant Mermaid Swim Adventure
    Canvas 2D with Fluid Physics, Shimmering Tail,
-   Flowing Hair, Pearl Collections & Magic Butterfly
+   Flowing Hair, Pearl Collections & High-Def Sprites
    =========================================== */
 
 export default class MermaidGame {
@@ -28,6 +28,12 @@ export default class MermaidGame {
   #pearlsCollected = 0;
   #levelGoal = 8;
   #invulnerableTimer = 0;
+
+  // Sprites
+  #mermaidSprite = null;
+  #mermaidSpriteLoaded = false;
+  #butterflySprite = null;
+  #butterflySpriteLoaded = false;
 
   // Controls
   #upPressed = false;
@@ -66,6 +72,52 @@ export default class MermaidGame {
     this.#canvas = canvas;
     this.#ctx = ctx;
     this.#callbacks = callbacks;
+    this.#loadSprites();
+  }
+
+  #loadSprites() {
+    // Load Mermaid Sprite and remove white background
+    this.#loadTransparentSprite('assets/mermaid_sprite.png', (canvas) => {
+      this.#mermaidSprite = canvas;
+      this.#mermaidSpriteLoaded = true;
+    });
+
+    // Load Butterfly Sprite and remove white background
+    this.#loadTransparentSprite('assets/butterfly_sprite.png', (canvas) => {
+      this.#butterflySprite = canvas;
+      this.#butterflySpriteLoaded = true;
+    });
+  }
+
+  #loadTransparentSprite(src, callback) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      const off = document.createElement('canvas');
+      off.width = img.width;
+      off.height = img.height;
+      const ctx = off.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      try {
+        const imgData = ctx.getImageData(0, 0, img.width, img.height);
+        const data = imgData.data;
+
+        // Chroma key white background to 100% transparent
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          if (r > 215 && g > 215 && b > 215) {
+            data[i + 3] = 0;
+          }
+        }
+        ctx.putImageData(imgData, 0, 0);
+        callback(off);
+      } catch (e) {
+        callback(img);
+      }
+    };
   }
 
   start() {
@@ -274,8 +326,8 @@ export default class MermaidGame {
     this.#player.tilt = (this.#player.vy / moveSpeed) * 0.25;
 
     // Butterfly follows Mermaid smoothly
-    const targetBfX = this.#player.x - 28;
-    const targetBfY = this.#player.y - 32 + Math.sin(this.#worldTime * 4) * 6;
+    const targetBfX = this.#player.x - 30;
+    const targetBfY = this.#player.y - 35 + Math.sin(this.#worldTime * 4) * 6;
     this.#butterfly.x += (targetBfX - this.#butterfly.x) * 5 * dt;
     this.#butterfly.y += (targetBfY - this.#butterfly.y) * 5 * dt;
 
@@ -311,7 +363,7 @@ export default class MermaidGame {
       if (p.x < -20) this.#pearls.splice(i, 1);
     }
 
-    // Update Obstacles (Jellyfish &Urchins)
+    // Update Obstacles (Jellyfish & Urchins)
     for (let i = this.#obstacles.length - 1; i >= 0; i--) {
       const obs = this.#obstacles[i];
       obs.x -= (this.#speed * 0.7) * dt;
@@ -518,7 +570,7 @@ export default class MermaidGame {
       this.#ctx.restore();
     }
 
-    // REALISTIC & BEAUTIFUL MERMAID (Sereia Encantada)
+    // REALISTIC BEAUTIFUL MERMAID SPRITE (Sereia Realista)
     if (this.#invulnerableTimer <= 0 || Math.floor(performance.now() / 100) % 2 === 0) {
       this.#drawBeautifulMermaid();
     }
@@ -576,201 +628,37 @@ export default class MermaidGame {
     this.#ctx.translate(this.#player.x, this.#player.y);
     this.#ctx.rotate(this.#player.tilt);
 
-    const tailWave = Math.sin(this.#worldTime * 5.5);
-    const hairWave1 = Math.sin(this.#worldTime * 3.5);
-    const hairWave2 = Math.cos(this.#worldTime * 2.8);
-    const swim = Math.sin(this.#worldTime * 6.0);
+    if (this.#mermaidSpriteLoaded) {
+      // Draw Ultra-High-Definition Sprite Image!
+      const w = 72;
+      const h = 58;
+      const bob = Math.sin(this.#worldTime * 5.0) * 3;
+      this.#ctx.shadowBlur = 16;
+      this.#ctx.shadowColor = '#2dd4bf';
+      this.#ctx.drawImage(this.#mermaidSprite, -w / 2, -h / 2 + bob, w, h);
+    } else {
+      // Vector fallback
+      const tailWave = Math.sin(this.#worldTime * 5.5);
 
-    // 1. BACK HAIR LOCKS (Cabelos de Trás em Camadas)
-    const backHairGrad = this.#ctx.createLinearGradient(-35, -35, 10, 0);
-    backHairGrad.addColorStop(0, '#3b0764');
-    backHairGrad.addColorStop(0.5, '#7e22ce');
-    backHairGrad.addColorStop(1, '#c084fc');
-    this.#ctx.fillStyle = backHairGrad;
-
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(10, -25);
-    this.#ctx.bezierCurveTo(-10, -32 + hairWave1 * 4, -30, -25 + hairWave2 * 5, -42, -10 + hairWave1 * 4);
-    this.#ctx.bezierCurveTo(-30, -2, -15, -8, 5, -12);
-    this.#ctx.closePath();
-    this.#ctx.fill();
-
-    // 2. MAJESTIC TAIL (Cauda de Sereia Iridescente)
-    const tailGrad = this.#ctx.createLinearGradient(-55, 0, 15, 0);
-    tailGrad.addColorStop(0, '#0284c7');
-    tailGrad.addColorStop(0.35, '#0d9488');
-    tailGrad.addColorStop(0.7, '#2dd4bf');
-    tailGrad.addColorStop(1, '#a7f3d0');
-    this.#ctx.fillStyle = tailGrad;
-    this.#ctx.shadowBlur = 14;
-    this.#ctx.shadowColor = '#2dd4bf';
-
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(10, 5);
-    this.#ctx.bezierCurveTo(-15, 15, -35, 18, -55, 10 + tailWave * 5);
-    this.#ctx.bezierCurveTo(-42, -5 + tailWave * 2, -25, -10, 10, -5);
-    this.#ctx.closePath();
-    this.#ctx.fill();
-
-    // Scales Highlight Overlay
-    this.#ctx.save();
-    this.#ctx.globalAlpha = 0.35;
-    this.#ctx.strokeStyle = '#ffffff';
-    this.#ctx.lineWidth = 1;
-    for (let col = 0; col < 5; col++) {
-      const sx = -5 - col * 9;
-      const sy = 2 - col * 1.5;
+      // Tail
+      this.#ctx.fillStyle = '#2dd4bf';
       this.#ctx.beginPath();
-      this.#ctx.arc(sx, sy, 4.5, 0.2, Math.PI - 0.2);
-      this.#ctx.stroke();
-    }
-    this.#ctx.restore();
+      this.#ctx.moveTo(10, 5);
+      this.#ctx.bezierCurveTo(-15, 15, -35, 18, -55, 10 + tailWave * 5);
+      this.#ctx.bezierCurveTo(-42, -5, -25, -10, 10, -5);
+      this.#ctx.fill();
 
-    // Translucent Fairy Caudal Fins (Nadadeiras Duplas de Fada)
-    const finGrad = this.#ctx.createLinearGradient(-75, -25, -45, 35);
-    finGrad.addColorStop(0, 'rgba(167, 243, 208, 0.9)');
-    finGrad.addColorStop(0.5, 'rgba(45, 212, 191, 0.85)');
-    finGrad.addColorStop(1, 'rgba(2, 132, 199, 0.8)');
-    this.#ctx.fillStyle = finGrad;
-
-    // Upper Fin
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(-55, 10 + tailWave * 5);
-    this.#ctx.bezierCurveTo(-68, -5 + tailWave * 7, -78, -24, -66, -28);
-    this.#ctx.bezierCurveTo(-54, -16, -50, -4, -55, 10 + tailWave * 5);
-    this.#ctx.fill();
-
-    // Lower Fin
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(-55, 10 + tailWave * 5);
-    this.#ctx.bezierCurveTo(-68, 24 + tailWave * 7, -78, 42, -66, 46);
-    this.#ctx.bezierCurveTo(-54, 32, -50, 18, -55, 10 + tailWave * 5);
-    this.#ctx.fill();
-
-    // 3. ELEGANT TORSO & PORCELAIN SKIN
-    this.#ctx.shadowBlur = 0;
-    this.#ctx.fillStyle = '#fff7ed'; // Soft porcelain skin
-
-    // Waist & Hips
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(10, 0, 12, 9, 0, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Torso & Chest
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(18, -6, 10, 8, -0.15, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Seashell Bra (Conchas Violeta Amethyst)
-    const shellGrad = this.#ctx.createRadialGradient(18, -9, 1, 18, -6, 8);
-    shellGrad.addColorStop(0, '#e9d5ff');
-    shellGrad.addColorStop(0.6, '#c084fc');
-    shellGrad.addColorStop(1, '#7e22ce');
-    this.#ctx.fillStyle = shellGrad;
-
-    this.#ctx.beginPath();
-    this.#ctx.arc(17, -9, 4.5, 0, Math.PI * 2);
-    this.#ctx.arc(17, -2, 4.5, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Pearl Necklace (Colar de Pérolas)
-    this.#ctx.fillStyle = '#ffffff';
-    for (let i = 0; i < 4; i++) {
+      // Torso & Skin
+      this.#ctx.fillStyle = '#fff7ed';
       this.#ctx.beginPath();
-      this.#ctx.arc(22 + i * 2, -14 + i * 1.5, 1.2, 0, Math.PI * 2);
+      this.#ctx.ellipse(10, 0, 12, 9, 0, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      // Head
+      this.#ctx.beginPath();
+      this.#ctx.ellipse(26, -18, 9, 10.5, 0, 0, Math.PI * 2);
       this.#ctx.fill();
     }
-
-    // Swimming Arms (Braços Nadando com Estilo)
-    this.#ctx.strokeStyle = '#fff7ed';
-    this.#ctx.lineWidth = 3.5;
-    this.#ctx.lineCap = 'round';
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(22, -10);
-    this.#ctx.quadraticCurveTo(32, -14, 38, -6 + swim * 3);
-    this.#ctx.stroke();
-
-    // 4. BEAUTIFUL REALISTIC HEAD & FACE (Rosto Princesa Disney)
-    // Head Contour
-    this.#ctx.fillStyle = '#fff7ed';
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(26, -18, 9, 10.5, 0.05, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Cheek Blush (Rubor Rosado Fofo)
-    this.#ctx.fillStyle = 'rgba(244, 114, 182, 0.4)';
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(30, -15, 3.5, 2.5, 0, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Expressive Eye (Olhos de Esmeralda Brilhantes)
-    // Eyebrow
-    this.#ctx.strokeStyle = '#451a03';
-    this.#ctx.lineWidth = 1.2;
-    this.#ctx.beginPath();
-    this.#ctx.quadraticCurveTo(28, -23, 33, -21);
-    this.#ctx.stroke();
-
-    // Iris & Pupil
-    const eyeGrad = this.#ctx.createLinearGradient(29, -21, 32, -16);
-    eyeGrad.addColorStop(0, '#047857');
-    eyeGrad.addColorStop(0.5, '#10b981');
-    eyeGrad.addColorStop(1, '#67e8f9');
-    this.#ctx.fillStyle = eyeGrad;
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(31, -18, 2.2, 2.8, 0.1, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Eyelashes (Cílios)
-    this.#ctx.strokeStyle = '#020617';
-    this.#ctx.lineWidth = 1.5;
-    this.#ctx.beginPath();
-    this.#ctx.arc(31, -19.5, 2.5, Math.PI * 1.1, Math.PI * 1.9);
-    this.#ctx.stroke();
-
-    // Eye Sparkle Highlight
-    this.#ctx.fillStyle = '#ffffff';
-    this.#ctx.beginPath();
-    this.#ctx.arc(32, -19, 0.9, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // Delicate Nose & Lips
-    this.#ctx.fillStyle = '#f43f5e'; // Soft Pink Smile
-    this.#ctx.beginPath();
-    this.#ctx.arc(33, -12, 1.6, 0, Math.PI * 2);
-    this.#ctx.fill();
-
-    // 5. MAIN FLOWING HAIR & TIARA (Cabelo Violeta Magnífico)
-    const mainHairGrad = this.#ctx.createLinearGradient(10, -35, 38, -5);
-    mainHairGrad.addColorStop(0, '#7e22ce');
-    mainHairGrad.addColorStop(0.5, '#c084fc');
-    mainHairGrad.addColorStop(1, '#f472b6');
-    this.#ctx.fillStyle = mainHairGrad;
-
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(18, -27);
-    this.#ctx.bezierCurveTo(12, -38, 32, -35, 36, -24);
-    this.#ctx.bezierCurveTo(40, -15, 34, -8, 24, -10 + hairWave1 * 3);
-    this.#ctx.bezierCurveTo(15, -16, 12, -22, 18, -27);
-    this.#ctx.closePath();
-    this.#ctx.fill();
-
-    // Golden Royal Tiara (Tiara Real com Joia Azul)
-    this.#ctx.fillStyle = '#facc15'; // Gold
-    this.#ctx.beginPath();
-    this.#ctx.moveTo(22, -26);
-    this.#ctx.lineTo(25, -31);
-    this.#ctx.lineTo(28, -26);
-    this.#ctx.lineTo(31, -30);
-    this.#ctx.lineTo(34, -25);
-    this.#ctx.closePath();
-    this.#ctx.fill();
-
-    // Sapphire Jewel on Tiara
-    this.#ctx.fillStyle = '#38bdf8';
-    this.#ctx.beginPath();
-    this.#ctx.arc(28, -27, 1.8, 0, Math.PI * 2);
-    this.#ctx.fill();
 
     this.#ctx.restore();
   }
@@ -779,36 +667,22 @@ export default class MermaidGame {
     this.#ctx.save();
     this.#ctx.translate(this.#butterfly.x, this.#butterfly.y);
 
-    const flap = Math.abs(Math.sin(this.#butterfly.wingAnim));
-
-    // Glowing Wings
-    this.#ctx.shadowBlur = 10;
-    this.#ctx.shadowColor = '#f472b6';
-    this.#ctx.fillStyle = 'rgba(244, 114, 182, 0.85)';
-
-    // Left Wings
-    this.#ctx.save();
-    this.#ctx.scale(flap, 1);
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(-6, -6, 8, 5, -0.4, 0, Math.PI * 2);
-    this.#ctx.ellipse(-5, 4, 6, 4, 0.4, 0, Math.PI * 2);
-    this.#ctx.fill();
-    this.#ctx.restore();
-
-    // Right Wings
-    this.#ctx.save();
-    this.#ctx.scale(flap, 1);
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(6, -6, 8, 5, 0.4, 0, Math.PI * 2);
-    this.#ctx.ellipse(5, 4, 6, 4, -0.4, 0, Math.PI * 2);
-    this.#ctx.fill();
-    this.#ctx.restore();
-
-    // Butterfly Body
-    this.#ctx.fillStyle = '#ffffff';
-    this.#ctx.beginPath();
-    this.#ctx.ellipse(0, 0, 1.8, 6, 0, 0, Math.PI * 2);
-    this.#ctx.fill();
+    if (this.#butterflySpriteLoaded) {
+      const w = 26;
+      const h = 26;
+      const flap = 1 + Math.sin(this.#butterfly.wingAnim) * 0.15;
+      this.#ctx.scale(1, flap);
+      this.#ctx.shadowBlur = 12;
+      this.#ctx.shadowColor = '#f472b6';
+      this.#ctx.drawImage(this.#butterflySprite, -w / 2, -h / 2, w, h);
+    } else {
+      const flap = Math.abs(Math.sin(this.#butterfly.wingAnim));
+      this.#ctx.fillStyle = 'rgba(244, 114, 182, 0.85)';
+      this.#ctx.scale(flap, 1);
+      this.#ctx.beginPath();
+      this.#ctx.ellipse(-6, -6, 8, 5, -0.4, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
 
     this.#ctx.restore();
   }
@@ -818,7 +692,6 @@ export default class MermaidGame {
     this.#ctx.translate(obs.x, obs.y);
 
     if (obs.type === 'jelly') {
-      // Luminescent Jellyfish
       const pulse = 1 + Math.sin(obs.anim) * 0.1;
       this.#ctx.scale(pulse, 1 / pulse);
       this.#ctx.shadowBlur = 15;
@@ -828,7 +701,6 @@ export default class MermaidGame {
       this.#ctx.arc(0, 0, obs.r, Math.PI, Math.PI * 2);
       this.#ctx.fill();
 
-      // Tentacles
       this.#ctx.strokeStyle = 'rgba(216, 180, 254, 0.8)';
       this.#ctx.lineWidth = 1.8;
       for (let i = -2; i <= 2; i++) {
@@ -839,7 +711,6 @@ export default class MermaidGame {
         this.#ctx.stroke();
       }
     } else {
-      // Spiky Sea Urchin
       this.#ctx.fillStyle = '#4c1d95';
       this.#ctx.beginPath();
       this.#ctx.arc(0, 0, obs.r * 0.7, 0, Math.PI * 2);
