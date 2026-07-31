@@ -185,6 +185,34 @@
     --transition-flash: rgba(56, 189, 248, 0.9);
 
     --theme-hue: 199deg;
+  /* ========================
+     MERMAID THEME (Aquatic Violet / Emerald Pearl)
+     ======================== */
+  [data-theme="mermaid"] {
+    --console-bg: #6b21a8;
+    --console-bg-light: #c084fc;
+    --console-border: #581c87;
+    --console-deep: #3b0764;
+    --console-gradient: linear-gradient(145deg, #7e22ce, #581c87);
+
+    --btn-start: #06b6d4;
+    --btn-end: #0891b2;
+    --btn-shadow: #0e7490;
+    --btn-highlight: rgba(255, 255, 255, 0.3);
+
+    --screen-border: rgba(192, 132, 252, 0.5);
+    --screen-glow: rgba(192, 132, 252, 0.3);
+
+    --name-color: #e9d5ff;
+    --name-shadow: rgba(0, 0, 0, 0.6);
+
+    --decor-line: rgba(192, 132, 252, 0.4);
+    --decor-stripe-start: rgba(192, 132, 252, 0.08);
+    --decor-stripe-end: transparent;
+
+    --transition-flash: rgba(192, 132, 252, 0.9);
+
+    --theme-hue: 275deg;
   }
 
   /* ========================

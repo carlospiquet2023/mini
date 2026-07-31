@@ -11,6 +11,7 @@ import SpaceGame from './SpaceGame.js';
 import PacmanGame from './PacmanGame.js';
 import TetrisGame from './TetrisGame.js';
 import RunnerGame from './RunnerGame.js';
+import MermaidGame from './MermaidGame.js';
 
 export default class GameManager {
   // DOM elements
@@ -35,6 +36,7 @@ export default class GameManager {
   #selectPacman;
   #selectTetris;
   #selectRunner;
+  #selectMermaid;
   #openGamesMenuBtn;
   #closeGamesModalBtn;
   #gamesModalOverlay;
@@ -51,9 +53,10 @@ export default class GameManager {
   #pacmanGame;
   #tetrisGame;
   #runnerGame;
+  #mermaidGame;
 
   // State
-  #activeGame = 'balls'; // 'balls' | 'worm' | 'space' | 'pacman' | 'tetris' | 'runner'
+  #activeGame = 'balls'; // 'balls' | 'worm' | 'space' | 'pacman' | 'tetris' | 'runner' | 'mermaid'
   #miniW = 0;
   #miniH = 0;
 
@@ -98,6 +101,7 @@ export default class GameManager {
     this.#selectPacman = document.getElementById('select-pacman');
     this.#selectTetris = document.getElementById('select-tetris');
     this.#selectRunner = document.getElementById('select-runner');
+    this.#selectMermaid = document.getElementById('select-mermaid');
     this.#openGamesMenuBtn = document.getElementById('open-games-menu');
     this.#closeGamesModalBtn = document.getElementById('close-games-modal');
     this.#gamesModalOverlay = document.getElementById('games-modal');
@@ -191,6 +195,16 @@ export default class GameManager {
       },
       onGameOver: (score) => {}
     });
+
+    // Mermaid Game
+    this.#mermaidGame = new MermaidGame(this.#miniCanvas, this.#miniCtx, {
+      onScoreChange: (score) => {
+        this.#scoreEl.textContent = score;
+        this.#statusLbl.textContent = 'FASE';
+        this.#statusVal.textContent = this.#mermaidGame?.level || '1';
+      },
+      onGameOver: (score) => {}
+    });
   }
 
   // ==========================================
@@ -201,51 +215,61 @@ export default class GameManager {
     this.#abortController = new AbortController();
     const signal = this.#abortController.signal;
 
-    const bindBtn = (element, onDown, onUp) => {
-      if (!element) return;
-      element.addEventListener('mousedown', () => onDown(), { signal });
-      element.addEventListener('mouseup', () => onUp(), { signal });
-      element.addEventListener('mouseleave', () => onUp(), { signal });
-      element.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, { passive: false, signal });
-      element.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); }, { passive: false, signal });
+    // Route keyboard inputs
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      if (['ArrowUp', 'KeyW'].includes(e.code)) this.#handleDirection('up', true);
+      if (['ArrowDown', 'KeyS'].includes(e.code)) this.#handleDirection('down', true);
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.#handleDirection('left', true);
+      if (['ArrowRight', 'KeyD'].includes(e.code)) this.#handleDirection('right', true);
+
+      if (e.code === 'KeyZ' || e.code === 'KeyJ') this.#handleButton('A', true);
+      if (e.code === 'KeyX' || e.code === 'KeyK') this.#handleButton('B', true);
+      if (e.code === 'KeyR') {
+        const game = this.#getActiveGameInstance();
+        game?.restart?.();
+      }
+    }, { signal });
+
+    window.addEventListener('keyup', (e) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) this.#handleDirection('up', false);
+      if (['ArrowDown', 'KeyS'].includes(e.code)) this.#handleDirection('down', false);
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.#handleDirection('left', false);
+      if (['ArrowRight', 'KeyD'].includes(e.code)) this.#handleDirection('right', false);
+
+      if (e.code === 'KeyZ' || e.code === 'KeyJ') this.#handleButton('A', false);
+      if (e.code === 'KeyX' || e.code === 'KeyK') this.#handleButton('B', false);
+    }, { signal });
+
+    // Helper to bind a single button with touch + mouse
+    const bindBtn = (el, downFn, upFn) => {
+      if (!el) return;
+      const start = (e) => { e.preventDefault(); downFn(); };
+      const end = (e) => { e.preventDefault(); upFn(); };
+      el.addEventListener('mousedown', start, { signal });
+      el.addEventListener('mouseup', end, { signal });
+      el.addEventListener('mouseleave', end, { signal });
+      el.addEventListener('touchstart', start, { signal });
+      el.addEventListener('touchend', end, { signal });
+      el.addEventListener('touchcancel', end, { signal });
     };
 
-    // D-Pad Cross controls
+    // D-Pad Cross
     bindBtn(this.#dpadUp, () => this.#handleDirection('up', true), () => this.#handleDirection('up', false));
     bindBtn(this.#dpadDown, () => this.#handleDirection('down', true), () => this.#handleDirection('down', false));
     bindBtn(this.#dpadLeft, () => this.#handleDirection('left', true), () => this.#handleDirection('left', false));
     bindBtn(this.#dpadRight, () => this.#handleDirection('right', true), () => this.#handleDirection('right', false));
 
-    // ROTATE / Action Buttons (A & B)
+    // Action Buttons
     bindBtn(this.#btnA, () => this.#handleButton('A', true), () => this.#handleButton('A', false));
     bindBtn(this.#btnB, () => this.#handleButton('B', true), () => this.#handleButton('B', false));
 
-    // Keyboard controls (Arrow keys / WASD / Space / Enter / Z / X)
-    window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') this.#handleDirection('up', true);
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') this.#handleDirection('down', true);
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this.#handleDirection('left', true);
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this.#handleDirection('right', true);
-      if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') this.#handleButton('A', true);
-    }, { signal });
-
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') this.#handleDirection('up', false);
-      if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') this.#handleDirection('down', false);
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') this.#handleDirection('left', false);
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') this.#handleDirection('right', false);
-      if (e.key === ' ' || e.key === 'Enter' || e.key === 'z' || e.key === 'Z') this.#handleButton('A', false);
-    }, { signal });
-
-    // Reset buttons (ball game)
-    this.#resetButton.addEventListener('click', () => {
-      this.#winMessage.classList.remove('visible');
+    // Reset Button
+    this.#resetButton?.addEventListener('click', () => {
       this.#ballGame.restart();
     }, { signal });
 
-    this.#resetGameBtn.addEventListener('click', () => {
-      this.#winMessage.classList.remove('visible');
+    this.#resetGameBtn?.addEventListener('click', () => {
       if (this.#activeGame === 'balls') {
         this.#ballGame.restart();
       } else if (this.#activeGame === 'worm') {
@@ -258,6 +282,8 @@ export default class GameManager {
         this.#tetrisGame.restart?.();
       } else if (this.#activeGame === 'runner') {
         this.#runnerGame.restart?.();
+      } else if (this.#activeGame === 'mermaid') {
+        this.#mermaidGame.restart?.();
       }
     }, { signal });
 
@@ -294,6 +320,7 @@ export default class GameManager {
     this.#selectPacman?.addEventListener('click', () => closeAndSwitch('pacman'), { signal });
     this.#selectTetris?.addEventListener('click', () => closeAndSwitch('tetris'), { signal });
     this.#selectRunner?.addEventListener('click', () => closeAndSwitch('runner'), { signal });
+    this.#selectMermaid?.addEventListener('click', () => closeAndSwitch('mermaid'), { signal });
 
     // Back button
     this.#backBtn.addEventListener('click', () => this.#switchGame('balls'), { signal });
@@ -319,6 +346,8 @@ export default class GameManager {
         this.#tetrisGame.resize(this.#miniW, this.#miniH);
       } else if (this.#activeGame === 'runner') {
         this.#runnerGame.resize(this.#miniW, this.#miniH);
+      } else if (this.#activeGame === 'mermaid') {
+        this.#mermaidGame.resize(this.#miniW, this.#miniH);
       }
     }, { signal });
   }
@@ -366,6 +395,7 @@ export default class GameManager {
       case 'pacman': return this.#pacmanGame;
       case 'tetris': return this.#tetrisGame;
       case 'runner': return this.#runnerGame;
+      case 'mermaid': return this.#mermaidGame;
       default: return null;
     }
   }
@@ -381,7 +411,7 @@ export default class GameManager {
     this.#getActiveGameInstance()?.stop();
 
     // Theme transition
-    const themeMap = { balls: 'default', worm: 'worm', space: 'space', pacman: 'pacman', tetris: 'tetris', runner: 'runner' };
+    const themeMap = { balls: 'default', worm: 'worm', space: 'space', pacman: 'pacman', tetris: 'tetris', runner: 'runner', mermaid: 'mermaid' };
     await this.#themeManager.setTheme(themeMap[target]);
 
     // Toggle layers
@@ -431,6 +461,12 @@ export default class GameManager {
         this.#scoreEl.textContent = '0';
         this.#runnerGame.resize(this.#miniW, this.#miniH);
         this.#runnerGame.start();
+      } else if (target === 'mermaid') {
+        this.#statusLbl.textContent = 'FASE';
+        this.#statusVal.textContent = '1';
+        this.#scoreEl.textContent = '0';
+        this.#mermaidGame.resize(this.#miniW, this.#miniH);
+        this.#mermaidGame.start();
       }
     }
   }
