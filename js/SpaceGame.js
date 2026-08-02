@@ -1,3 +1,5 @@
+import { configureCanvas } from './utils/canvas.js';
+
 export default class SpaceGame {
   #canvas;
   #ctx;
@@ -7,6 +9,7 @@ export default class SpaceGame {
   #isRunning = false;
   #lastTime = 0;
   #animationFrameId = null;
+  #initialized = false;
   #shakeAmount = 0;
 
   #leftPressed = false;
@@ -50,23 +53,24 @@ export default class SpaceGame {
     if (this.#isRunning) return;
     this.#isRunning = true;
 
-    // DPR-aware canvas setup
-    const dpr = window.devicePixelRatio || 1;
-    this.#canvas.width = this.#width * dpr;
-    this.#canvas.height = this.#height * dpr;
-    this.#canvas.style.width = this.#width + 'px';
-    this.#canvas.style.height = this.#height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
+    configureCanvas(this.#canvas, this.#ctx, this.#width, this.#height);
 
-    this.#initBackground();
-    this.#initPlayer();
+    if (!this.#initialized) {
+      this.#initBackground();
+      this.#initPlayer();
+      this.#initialized = true;
+    }
     this.#lastTime = performance.now();
     this.#loop(this.#lastTime);
   }
 
   stop() {
     this.#isRunning = false;
+    this.#leftPressed = false;
+    this.#rightPressed = false;
+    this.#upPressed = false;
+    this.#downPressed = false;
+    this.#firePressed = false;
     if (this.#animationFrameId) {
       cancelAnimationFrame(this.#animationFrameId);
       this.#animationFrameId = null;
@@ -74,8 +78,9 @@ export default class SpaceGame {
   }
 
   resize(width, height) {
-    this.#width = width;
-    this.#height = height;
+    const size = configureCanvas(this.#canvas, this.#ctx, width, height);
+    this.#width = size.width;
+    this.#height = size.height;
     if (this.#player) {
       this.#player.y = this.#height * 0.85;
       if (this.#player.x < 0) this.#player.x = 0;
@@ -87,6 +92,7 @@ export default class SpaceGame {
       this.#boss.width = this.#width * 0.4;
       this.#boss.height = this.#boss.width * 0.6;
     }
+    if (this.#initialized) this.#initBackground();
   }
 
   onDirection(dir, pressed) {
@@ -143,13 +149,19 @@ export default class SpaceGame {
     this.#particles = [];
     this.#powerups = [];
 
+    this.#initBackground();
     this.#initPlayer();
+    this.#initialized = true;
     if (this.#callbacks.onScoreChange) this.#callbacks.onScoreChange(this.#score);
 
     if (!this.#isRunning) {
       this.start();
     }
   }
+
+  get score() { return this.#score; }
+  get lives() { return this.#lives; }
+  get wave() { return this.#wave; }
 
   #initBackground() {
     this.#stars = [];
@@ -904,6 +916,7 @@ export default class SpaceGame {
           this.#shakeAmount = 5;
         } else {
           this.#lives--;
+          this.#callbacks.onStateChange?.();
           this.#shakeAmount = 15;
           this.#createExplosion(this.#player.x, this.#player.y, 30);
           if (this.#lives <= 0) {

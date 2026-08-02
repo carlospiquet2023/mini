@@ -1,10 +1,6 @@
-/* ===========================================
-   GameManager — Game Orchestration & Controls
-   Manages game switching, control routing,
-   canvas management, and lifecycle
-   =========================================== */
-
 import ThemeManager from './ThemeManager.js';
+import InputController from './InputController.js';
+import ViewportManager from './ViewportManager.js';
 import BallGame from './BallGame.js';
 import SnakeGame from './SnakeGame.js';
 import SpaceGame from './SpaceGame.js';
@@ -13,474 +9,292 @@ import TetrisGame from './TetrisGame.js';
 import RunnerGame from './RunnerGame.js';
 import MermaidGame from './MermaidGame.js';
 
+const GAME_DEFINITIONS = {
+  balls: {
+    Game: BallGame,
+    name: 'Jogo das Bolinhas',
+    theme: 'default',
+    status: () => ['GOAL', String(BallGame.NUM_BALLS)]
+  },
+  worm: {
+    Game: SnakeGame,
+    name: 'Minhoca Voraz',
+    theme: 'worm',
+    status: (_game, score) => ['LEVEL', String(Math.floor(score / 5) + 1)]
+  },
+  space: {
+    Game: SpaceGame,
+    name: 'Nave na Galáxia',
+    theme: 'space',
+    status: (game) => ['LIFE', String(game.lives ?? 3)]
+  },
+  pacman: {
+    Game: PacmanGame,
+    name: 'Pac-Man Retro',
+    theme: 'pacman',
+    status: (game) => ['LEVEL', String(game.level ?? 1)]
+  },
+  tetris: {
+    Game: TetrisGame,
+    name: 'Tetris Classic',
+    theme: 'tetris',
+    status: (game) => ['LEVEL', String(game.level ?? 1)]
+  },
+  runner: {
+    Game: RunnerGame,
+    name: 'Super Pulo',
+    theme: 'runner',
+    status: (_game, score) => ['DIST', String(Math.floor(score))]
+  },
+  mermaid: {
+    Game: MermaidGame,
+    name: 'Sereia & Borboleta',
+    theme: 'mermaid',
+    status: (game) => ['FASE', String(game.level ?? 1)]
+  }
+};
+
 export default class GameManager {
-  // DOM elements
-  #ballsLayer;
-  #miniLayer;
-  #ballCanvas;
-  #miniCanvas;
-  #miniCtx;
-  #scoreEl;
-  #winMessage;
-  #resetButton;
-  #resetGameBtn;
-  #backBtn;
-  #btnA;
-  #btnB;
-  #dpadUp;
-  #dpadDown;
-  #dpadLeft;
-  #dpadRight;
-  #selectWorm;
-  #selectSpace;
-  #selectPacman;
-  #selectTetris;
-  #selectRunner;
-  #selectMermaid;
-  #openGamesMenuBtn;
-  #closeGamesModalBtn;
-  #gamesModalOverlay;
-  #statusLbl;
-  #statusVal;
-
-  // Managers
+  #dom;
+  #games = new Map();
+  #scores = new Map();
+  #activeGameId = 'balls';
+  #viewportSize = { width: 0, height: 0 };
+  #abortController = new AbortController();
   #themeManager;
-
-  // Games
-  #ballGame;
-  #snakeGame;
-  #spaceGame;
-  #pacmanGame;
-  #tetrisGame;
-  #runnerGame;
-  #mermaidGame;
-
-  // State
-  #activeGame = 'balls'; // 'balls' | 'worm' | 'space' | 'pacman' | 'tetris' | 'runner' | 'mermaid'
-  #miniW = 0;
-  #miniH = 0;
-
-  // AbortController for cleanup
-  #abortController;
+  #inputController;
+  #viewportManager;
+  #modalOpen = false;
+  #lastFocusedElement = null;
 
   constructor() {
-    this.#cacheDOM();
-    this.#themeManager = new ThemeManager(document.getElementById('screen-flash'));
-    this.#setupMiniCanvas();
+    this.#dom = this.#cacheDom();
+    this.#themeManager = new ThemeManager(this.#dom.screenFlash);
     this.#createGames();
-    this.#bindControls();
-    this.#bindSelectors();
-    this.#bindResize();
+    this.#bindInterface();
 
-    // Start with ball game
-    this.#ballGame.start();
+    this.#inputController = new InputController({
+      onDirection: (direction, pressed) => this.#handleDirection(direction, pressed),
+      onButton: (button, pressed) => this.#handleButton(button, pressed),
+      onReset: () => this.#restartActiveGame(),
+      onEscape: () => this.#handleEscape()
+    });
+
+    this.#viewportManager = new ViewportManager(
+      this.#dom.screenBezel,
+      (width, height) => this.resize(width, height)
+    );
+
+    this.resize(this.#dom.screenBezel.clientWidth, this.#dom.screenBezel.clientHeight);
+    this.#renderActiveLayer();
+    this.#syncScoreboard();
+    this.#games.get('balls').start();
   }
 
-  // ==========================================
-  // DOM CACHING
-  // ==========================================
-
-  #cacheDOM() {
-    this.#ballsLayer = document.getElementById('balls-layer');
-    this.#miniLayer = document.getElementById('mini-layer');
-    this.#ballCanvas = document.getElementById('game-canvas');
-    this.#miniCanvas = document.getElementById('mini-canvas');
-    this.#scoreEl = document.getElementById('score');
-    this.#winMessage = document.getElementById('win-message');
-    this.#resetButton = document.getElementById('reset-button');
-    this.#resetGameBtn = document.getElementById('reset-game');
-    this.#backBtn = document.getElementById('back-btn');
-    this.#btnA = document.getElementById('button-a');
-    this.#btnB = document.getElementById('button-b');
-    this.#dpadUp = document.getElementById('dpad-up');
-    this.#dpadDown = document.getElementById('dpad-down');
-    this.#dpadLeft = document.getElementById('dpad-left');
-    this.#dpadRight = document.getElementById('dpad-right');
-    this.#selectWorm = document.getElementById('select-worm');
-    this.#selectSpace = document.getElementById('select-space');
-    this.#selectPacman = document.getElementById('select-pacman');
-    this.#selectTetris = document.getElementById('select-tetris');
-    this.#selectRunner = document.getElementById('select-runner');
-    this.#selectMermaid = document.getElementById('select-mermaid');
-    this.#openGamesMenuBtn = document.getElementById('open-games-menu');
-    this.#closeGamesModalBtn = document.getElementById('close-games-modal');
-    this.#gamesModalOverlay = document.getElementById('games-modal');
-    this.#statusLbl = document.getElementById('status-lbl');
-    this.#statusVal = document.getElementById('status-val');
+  get activeGame() {
+    return this.#activeGameId;
   }
 
-  // ==========================================
-  // MINI CANVAS SETUP
-  // ==========================================
+  #cacheDom() {
+    const required = (selector) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`Elemento obrigatório não encontrado: ${selector}`);
+      return element;
+    };
 
-  #setupMiniCanvas() {
-    const container = this.#miniCanvas.parentElement;
-    const rect = container.getBoundingClientRect();
-    this.#miniW = rect.width;
-    this.#miniH = rect.height;
-    this.#miniCtx = this.#miniCanvas.getContext('2d');
+    return {
+      ballsLayer: required('#balls-layer'),
+      miniLayer: required('#mini-layer'),
+      screenBezel: required('.screen-bezel'),
+      ballCanvas: required('#game-canvas'),
+      miniCanvas: required('#mini-canvas'),
+      score: required('#score'),
+      scoreBox: required('#score-box'),
+      statusLabel: required('#status-lbl'),
+      statusValue: required('#status-val'),
+      winMessage: required('#win-message'),
+      resetWin: required('#reset-button'),
+      resetGame: required('#reset-game'),
+      back: required('#back-btn'),
+      openGames: required('#open-games-menu'),
+      closeGames: required('#close-games-modal'),
+      gamesModal: required('#games-modal'),
+      gamesGrid: required('.games-grid-menu'),
+      screenFlash: required('#screen-flash')
+    };
   }
-
-  // ==========================================
-  // GAME CREATION
-  // ==========================================
 
   #createGames() {
-    const ballCtx = this.#ballCanvas.getContext('2d');
+    const miniContext = this.#dom.miniCanvas.getContext('2d', { alpha: false });
+    const ballContext = this.#dom.ballCanvas.getContext('2d');
+    if (!miniContext || !ballContext) throw new Error('Canvas 2D indisponível neste navegador.');
 
-    // Ball Game
-    this.#ballGame = new BallGame(this.#ballCanvas, ballCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'GOAL';
-        this.#statusVal.textContent = '12';
-        this.#scoreEl.parentElement.classList.remove('score-pop');
-        void this.#scoreEl.parentElement.offsetWidth;
-        this.#scoreEl.parentElement.classList.add('score-pop');
-      },
-      onWin: () => {
-        this.#winMessage.classList.add('visible');
-      },
-      onWinHide: () => {
-        this.#winMessage.classList.remove('visible');
-      }
-    });
+    for (const [id, definition] of Object.entries(GAME_DEFINITIONS)) {
+      const canvas = id === 'balls' ? this.#dom.ballCanvas : this.#dom.miniCanvas;
+      const context = id === 'balls' ? ballContext : miniContext;
+      const callbacks = {
+        onScoreChange: (score) => this.#handleScoreChange(id, score),
+        onStateChange: () => this.#syncScoreboardFor(id),
+        onGameOver: () => this.#syncScoreboardFor(id),
+        onWin: () => this.#dom.winMessage.classList.add('visible'),
+        onWinHide: () => this.#dom.winMessage.classList.remove('visible')
+      };
 
-    // Snake Game
-    this.#snakeGame = new SnakeGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = Math.floor(score / 5) + 1;
-      },
-      onGameOver: (score) => {}
-    });
-
-    // Space Game
-    this.#spaceGame = new SpaceGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'LIFE';
-        this.#statusVal.textContent = '3';
-      },
-      onGameOver: (score) => {}
-    });
-
-    // Pac-Man Game
-    this.#pacmanGame = new PacmanGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = this.#pacmanGame?.level || '1';
-      },
-      onGameOver: (score) => {}
-    });
-
-    // Tetris Game
-    this.#tetrisGame = new TetrisGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = this.#tetrisGame?.level || '1';
-      },
-      onGameOver: (score) => {}
-    });
-
-    // Runner Game
-    this.#runnerGame = new RunnerGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'DIST';
-        this.#statusVal.textContent = Math.floor(score);
-      },
-      onGameOver: (score) => {}
-    });
-
-    // Mermaid Game
-    this.#mermaidGame = new MermaidGame(this.#miniCanvas, this.#miniCtx, {
-      onScoreChange: (score) => {
-        this.#scoreEl.textContent = score;
-        this.#statusLbl.textContent = 'FASE';
-        this.#statusVal.textContent = this.#mermaidGame?.level || '1';
-      },
-      onGameOver: (score) => {}
-    });
+      this.#scores.set(id, 0);
+      this.#games.set(id, new definition.Game(canvas, context, callbacks));
+    }
   }
 
-  // ==========================================
-  // CONTROL BINDING
-  // ==========================================
+  #bindInterface() {
+    const { signal } = this.#abortController;
 
-  #bindControls() {
-    this.#abortController = new AbortController();
-    const signal = this.#abortController.signal;
-
-    // Route keyboard inputs
-    window.addEventListener('keydown', (e) => {
-      if (e.repeat) return;
-      if (['ArrowUp', 'KeyW'].includes(e.code)) this.#handleDirection('up', true);
-      if (['ArrowDown', 'KeyS'].includes(e.code)) this.#handleDirection('down', true);
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.#handleDirection('left', true);
-      if (['ArrowRight', 'KeyD'].includes(e.code)) this.#handleDirection('right', true);
-
-      if (e.code === 'KeyZ' || e.code === 'KeyJ') this.#handleButton('A', true);
-      if (e.code === 'KeyX' || e.code === 'KeyK') this.#handleButton('B', true);
-      if (e.code === 'KeyR') {
-        const game = this.#getActiveGameInstance();
-        game?.restart?.();
-      }
+    this.#dom.openGames.addEventListener('click', () => this.#openGamesModal(), { signal });
+    this.#dom.closeGames.addEventListener('click', () => this.#closeGamesModal(), { signal });
+    this.#dom.gamesModal.addEventListener('click', (event) => {
+      if (event.target === this.#dom.gamesModal) this.#closeGamesModal();
     }, { signal });
 
-    window.addEventListener('keyup', (e) => {
-      if (['ArrowUp', 'KeyW'].includes(e.code)) this.#handleDirection('up', false);
-      if (['ArrowDown', 'KeyS'].includes(e.code)) this.#handleDirection('down', false);
-      if (['ArrowLeft', 'KeyA'].includes(e.code)) this.#handleDirection('left', false);
-      if (['ArrowRight', 'KeyD'].includes(e.code)) this.#handleDirection('right', false);
-
-      if (e.code === 'KeyZ' || e.code === 'KeyJ') this.#handleButton('A', false);
-      if (e.code === 'KeyX' || e.code === 'KeyK') this.#handleButton('B', false);
+    this.#dom.gamesGrid.addEventListener('click', (event) => {
+      const gameButton = event.target.closest('[data-game]');
+      if (!gameButton) return;
+      this.#closeGamesModal();
+      this.#switchGame(gameButton.dataset.game);
     }, { signal });
 
-    // Helper to bind a single button with touch + mouse
-    const bindBtn = (el, downFn, upFn) => {
-      if (!el) return;
-      const start = (e) => { e.preventDefault(); downFn(); };
-      const end = (e) => { e.preventDefault(); upFn(); };
-      el.addEventListener('mousedown', start, { signal });
-      el.addEventListener('mouseup', end, { signal });
-      el.addEventListener('mouseleave', end, { signal });
-      el.addEventListener('touchstart', start, { signal });
-      el.addEventListener('touchend', end, { signal });
-      el.addEventListener('touchcancel', end, { signal });
-    };
-
-    // D-Pad Cross
-    bindBtn(this.#dpadUp, () => this.#handleDirection('up', true), () => this.#handleDirection('up', false));
-    bindBtn(this.#dpadDown, () => this.#handleDirection('down', true), () => this.#handleDirection('down', false));
-    bindBtn(this.#dpadLeft, () => this.#handleDirection('left', true), () => this.#handleDirection('left', false));
-    bindBtn(this.#dpadRight, () => this.#handleDirection('right', true), () => this.#handleDirection('right', false));
-
-    // Action Buttons
-    bindBtn(this.#btnA, () => this.#handleButton('A', true), () => this.#handleButton('A', false));
-    bindBtn(this.#btnB, () => this.#handleButton('B', true), () => this.#handleButton('B', false));
-
-    // Reset Button
-    this.#resetButton?.addEventListener('click', () => {
-      this.#ballGame.restart();
-    }, { signal });
-
-    this.#resetGameBtn?.addEventListener('click', () => {
-      if (this.#activeGame === 'balls') {
-        this.#ballGame.restart();
-      } else if (this.#activeGame === 'worm') {
-        this.#snakeGame.restart?.();
-      } else if (this.#activeGame === 'space') {
-        this.#spaceGame.restart?.();
-      } else if (this.#activeGame === 'pacman') {
-        this.#pacmanGame.restart?.();
-      } else if (this.#activeGame === 'tetris') {
-        this.#tetrisGame.restart?.();
-      } else if (this.#activeGame === 'runner') {
-        this.#runnerGame.restart?.();
-      } else if (this.#activeGame === 'mermaid') {
-        this.#mermaidGame.restart?.();
-      }
-    }, { signal });
-
-    // Haptic feedback
-    const haptic = () => {
-      if ('vibrate' in navigator) navigator.vibrate(10);
-    };
-    this.#btnA?.addEventListener('touchstart', haptic, { signal });
-    this.#dpadUp?.addEventListener('touchstart', haptic, { signal });
+    this.#dom.back.addEventListener('click', () => this.#switchGame('balls'), { signal });
+    this.#dom.resetWin.addEventListener('click', () => this.#restartActiveGame(), { signal });
+    this.#dom.resetGame.addEventListener('click', () => this.#restartActiveGame(), { signal });
   }
 
-  // ==========================================
-  // GAME SELECTOR BINDING
-  // ==========================================
-
-  #bindSelectors() {
-    const signal = this.#abortController.signal;
-
-    this.#openGamesMenuBtn?.addEventListener('click', () => {
-      this.#gamesModalOverlay?.classList.add('open');
-    }, { signal });
-
-    this.#closeGamesModalBtn?.addEventListener('click', () => {
-      this.#gamesModalOverlay?.classList.remove('open');
-    }, { signal });
-
-    const closeAndSwitch = (game) => {
-      this.#gamesModalOverlay?.classList.remove('open');
-      this.#switchGame(game);
-    };
-
-    this.#selectWorm?.addEventListener('click', () => closeAndSwitch('worm'), { signal });
-    this.#selectSpace?.addEventListener('click', () => closeAndSwitch('space'), { signal });
-    this.#selectPacman?.addEventListener('click', () => closeAndSwitch('pacman'), { signal });
-    this.#selectTetris?.addEventListener('click', () => closeAndSwitch('tetris'), { signal });
-    this.#selectRunner?.addEventListener('click', () => closeAndSwitch('runner'), { signal });
-    this.#selectMermaid?.addEventListener('click', () => closeAndSwitch('mermaid'), { signal });
-
-    // Back button
-    this.#backBtn.addEventListener('click', () => this.#switchGame('balls'), { signal });
+  #openGamesModal() {
+    if (this.#modalOpen) return;
+    this.#inputController?.releaseAll();
+    this.#lastFocusedElement = document.activeElement;
+    this.#modalOpen = true;
+    this.#dom.gamesModal.classList.add('open');
+    this.#dom.gamesModal.setAttribute('aria-hidden', 'false');
+    this.#dom.openGames.setAttribute('aria-expanded', 'true');
+    this.#dom.closeGames.focus({ preventScroll: true });
   }
 
-  // ==========================================
-  // RESIZE HANDLING
-  // ==========================================
+  #closeGamesModal(restoreFocus = true) {
+    if (!this.#modalOpen) return;
+    this.#modalOpen = false;
+    this.#dom.gamesModal.classList.remove('open');
+    this.#dom.gamesModal.setAttribute('aria-hidden', 'true');
+    this.#dom.openGames.setAttribute('aria-expanded', 'false');
 
-  #bindResize() {
-    const signal = this.#abortController.signal;
-
-    window.addEventListener('resize', () => {
-      this.#setupMiniCanvas();
-
-      if (this.#activeGame === 'worm') {
-        this.#snakeGame.resize(this.#miniW, this.#miniH);
-      } else if (this.#activeGame === 'space') {
-        this.#spaceGame.resize(this.#miniW, this.#miniH);
-      } else if (this.#activeGame === 'pacman') {
-        this.#pacmanGame.resize(this.#miniW, this.#miniH);
-      } else if (this.#activeGame === 'tetris') {
-        this.#tetrisGame.resize(this.#miniW, this.#miniH);
-      } else if (this.#activeGame === 'runner') {
-        this.#runnerGame.resize(this.#miniW, this.#miniH);
-      } else if (this.#activeGame === 'mermaid') {
-        this.#mermaidGame.resize(this.#miniW, this.#miniH);
-      }
-    }, { signal });
+    if (restoreFocus && this.#lastFocusedElement instanceof HTMLElement) {
+      this.#lastFocusedElement.focus({ preventScroll: true });
+    }
+    this.#lastFocusedElement = null;
   }
 
-  // ==========================================
-  // DIRECTION & BUTTON ROUTING
-  // ==========================================
+  #handleEscape() {
+    if (this.#modalOpen) this.#closeGamesModal();
+    else if (this.#activeGameId !== 'balls') this.#switchGame('balls');
+  }
 
-  #handleDirection(dir, pressed) {
-    const game = this.#getActiveGameInstance();
+  #handleScoreChange(gameId, score) {
+    this.#scores.set(gameId, Number.isFinite(score) ? score : 0);
+    if (gameId !== this.#activeGameId) return;
+
+    this.#syncScoreboard();
+    this.#dom.scoreBox.classList.remove('score-pop');
+    void this.#dom.scoreBox.offsetWidth;
+    this.#dom.scoreBox.classList.add('score-pop');
+  }
+
+  #syncScoreboardFor(gameId) {
+    if (gameId === this.#activeGameId) this.#syncScoreboard();
+  }
+
+  #syncScoreboard() {
+    const game = this.#games.get(this.#activeGameId);
+    const definition = GAME_DEFINITIONS[this.#activeGameId];
+    const score = this.#scores.get(this.#activeGameId) ?? game?.score ?? 0;
+    const [label, value] = definition.status(game, score);
+
+    this.#dom.score.textContent = String(Math.floor(score));
+    this.#dom.statusLabel.textContent = label;
+    this.#dom.statusValue.textContent = value;
+  }
+
+  #handleDirection(direction, pressed) {
+    if (this.#modalOpen) return;
+    const game = this.#games.get(this.#activeGameId);
     if (!game) return;
 
-    if (this.#activeGame === 'balls') {
-      if (dir === 'left') pressed ? game.onButtonADown() : game.onButtonAUp();
-      if (dir === 'right') pressed ? game.onButtonBDown() : game.onButtonBUp();
-      if (dir === 'up') {
+    if (this.#activeGameId === 'balls') {
+      if (direction === 'left') pressed ? game.onButtonADown() : game.onButtonAUp();
+      if (direction === 'right') pressed ? game.onButtonBDown() : game.onButtonBUp();
+      if (direction === 'up') {
         pressed ? (game.onButtonADown(), game.onButtonBDown()) : (game.onButtonAUp(), game.onButtonBUp());
       }
-    } else if (game.onDirection) {
-      game.onDirection(dir, pressed);
-    } else {
-      if (dir === 'up' && pressed) game.onUp ? game.onUp() : game.onButtonADown?.();
-      if (dir === 'down' && pressed) game.onDown ? game.onDown() : null;
-      if (dir === 'left' && pressed) game.onLeft ? game.onLeft() : game.onButtonADown?.();
-      if (dir === 'right' && pressed) game.onRight ? game.onRight() : game.onButtonBDown?.();
+      return;
     }
+
+    game.onDirection?.(direction, pressed);
   }
 
   #handleButton(button, pressed) {
-    const game = this.#getActiveGameInstance();
+    if (this.#modalOpen) return;
+    const game = this.#games.get(this.#activeGameId);
     if (!game) return;
 
-    if (button === 'A') {
-      pressed ? game.onButtonADown() : game.onButtonAUp();
-    } else {
-      pressed ? game.onButtonBDown() : game.onButtonBUp();
-    }
+    if (button === 'A') pressed ? game.onButtonADown?.() : game.onButtonAUp?.();
+    else pressed ? game.onButtonBDown?.() : game.onButtonBUp?.();
   }
 
-  #getActiveGameInstance() {
-    switch (this.#activeGame) {
-      case 'balls': return this.#ballGame;
-      case 'worm': return this.#snakeGame;
-      case 'space': return this.#spaceGame;
-      case 'pacman': return this.#pacmanGame;
-      case 'tetris': return this.#tetrisGame;
-      case 'runner': return this.#runnerGame;
-      case 'mermaid': return this.#mermaidGame;
-      default: return null;
-    }
+  #restartActiveGame() {
+    this.#inputController?.releaseAll();
+    const game = this.#games.get(this.#activeGameId);
+    game?.restart?.();
+    this.#syncScoreboard();
   }
 
-  // ==========================================
-  // GAME SWITCHING
-  // ==========================================
+  #switchGame(targetId) {
+    if (!GAME_DEFINITIONS[targetId] || targetId === this.#activeGameId) return;
 
-  async #switchGame(target) {
-    if (target === this.#activeGame) return;
-
-    // Stop current game
-    this.#getActiveGameInstance()?.stop();
-
-    // Theme transition
-    const themeMap = { balls: 'default', worm: 'worm', space: 'space', pacman: 'pacman', tetris: 'tetris', runner: 'runner', mermaid: 'mermaid' };
-    await this.#themeManager.setTheme(themeMap[target]);
-
-    // Toggle layers
-    if (target === 'balls') {
-      this.#miniLayer.classList.remove('visible');
-      this.#ballsLayer.style.display = '';
-      this.#winMessage.classList.remove('visible');
-      this.#activeGame = 'balls';
-      this.#statusLbl.textContent = 'GOAL';
-      this.#statusVal.textContent = '12';
-      this.#ballGame.start();
-    } else {
-      this.#ballsLayer.style.display = 'none';
-      this.#miniLayer.classList.add('visible');
-      this.#activeGame = target;
-
-      // Re-setup canvas (might have changed size)
-      this.#setupMiniCanvas();
-
-      if (target === 'worm') {
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = '1';
-        this.#scoreEl.textContent = this.#snakeGame?.score || 0;
-        this.#snakeGame.resize(this.#miniW, this.#miniH);
-        this.#snakeGame.start();
-      } else if (target === 'space') {
-        this.#statusLbl.textContent = 'LIFE';
-        this.#statusVal.textContent = '3';
-        this.#scoreEl.textContent = this.#spaceGame?.score || 0;
-        this.#spaceGame.resize(this.#miniW, this.#miniH);
-        this.#spaceGame.start();
-      } else if (target === 'pacman') {
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = this.#pacmanGame?.level || 1;
-        this.#scoreEl.textContent = this.#pacmanGame?.score || 0;
-        this.#pacmanGame.resize(this.#miniW, this.#miniH);
-        this.#pacmanGame.start();
-      } else if (target === 'tetris') {
-        this.#statusLbl.textContent = 'LEVEL';
-        this.#statusVal.textContent = this.#tetrisGame?.level || 1;
-        this.#scoreEl.textContent = this.#tetrisGame?.score || 0;
-        this.#tetrisGame.resize(this.#miniW, this.#miniH);
-        this.#tetrisGame.start();
-      } else if (target === 'runner') {
-        this.#statusLbl.textContent = 'DIST';
-        this.#statusVal.textContent = '0';
-        this.#scoreEl.textContent = '0';
-        this.#runnerGame.resize(this.#miniW, this.#miniH);
-        this.#runnerGame.start();
-      } else if (target === 'mermaid') {
-        this.#statusLbl.textContent = 'FASE';
-        this.#statusVal.textContent = '1';
-        this.#scoreEl.textContent = '0';
-        this.#mermaidGame.resize(this.#miniW, this.#miniH);
-        this.#mermaidGame.start();
-      }
-    }
+    this.#inputController.releaseAll();
+    this.#games.get(this.#activeGameId)?.stop?.();
+    this.#activeGameId = targetId;
+    this.#themeManager.setTheme(GAME_DEFINITIONS[targetId].theme);
+    this.#renderActiveLayer();
+    this.#resizeActiveGames();
+    this.#syncScoreboard();
+    this.#games.get(targetId)?.start?.();
   }
 
-  // ==========================================
-  // CLEANUP
-  // ==========================================
+  #renderActiveLayer() {
+    const isBallGame = this.#activeGameId === 'balls';
+    this.#dom.ballsLayer.hidden = !isBallGame;
+    this.#dom.miniLayer.classList.toggle('visible', !isBallGame);
+    this.#dom.miniCanvas.setAttribute('aria-label', GAME_DEFINITIONS[this.#activeGameId].name);
+    document.body.dataset.game = this.#activeGameId;
+    if (isBallGame) this.#dom.winMessage.classList.remove('visible');
+  }
+
+  resize(width, height) {
+    if (width < 2 || height < 2) return;
+    this.#viewportSize = { width, height };
+    this.#resizeActiveGames();
+  }
+
+  #resizeActiveGames() {
+    const { width, height } = this.#viewportSize;
+    if (width < 2 || height < 2) return;
+
+    this.#games.get('balls')?.resize?.(width, height);
+    if (this.#activeGameId !== 'balls') {
+      this.#games.get(this.#activeGameId)?.resize?.(width, height);
+    }
+  }
 
   destroy() {
-    this.#abortController?.abort();
-    this.#ballGame?.stop();
-    this.#snakeGame?.stop();
-    this.#spaceGame?.stop();
-    this.#pacmanGame?.stop();
-    this.#tetrisGame?.stop();
+    this.#abortController.abort();
+    this.#inputController?.destroy();
+    this.#viewportManager?.destroy();
+    for (const game of this.#games.values()) game.stop?.();
   }
 }

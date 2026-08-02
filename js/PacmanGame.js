@@ -1,12 +1,15 @@
+import { configureCanvas } from './utils/canvas.js';
+
 export default class PacmanGame {
   constructor(canvas, ctx, callbacks) {
     this.canvas = canvas;
     this.ctx = ctx;
     this.callbacks = callbacks;
-    this.width = canvas.width;
-    this.height = canvas.height;
+    this.width = canvas.clientWidth || 300;
+    this.height = canvas.clientHeight || 500;
     
     this.running = false;
+    this.rafId = null;
     this.lastTime = 0;
     
     this.level = 1;
@@ -14,6 +17,7 @@ export default class PacmanGame {
     this.lives = 3;
     this.gameOver = false;
     this.winLevel = false;
+    this.levelTransitionTimer = 0;
 
     // Maze dimensions
     this.cols = 15;
@@ -111,25 +115,22 @@ export default class PacmanGame {
     if (!this.running) {
       this.running = true;
       this.lastTime = performance.now();
-      requestAnimationFrame((t) => this.loop(t));
+      this.rafId = requestAnimationFrame((time) => this.loop(time));
     }
   }
 
   stop() {
     this.running = false;
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
   }
 
   resize(width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = width * dpr;
-    this.canvas.height = height * dpr;
-    this.canvas.style.width = width + 'px';
-    this.canvas.style.height = height + 'px';
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.scale(dpr, dpr);
-
-    this.width = width;
-    this.height = height;
+    const size = configureCanvas(this.canvas, this.ctx, width, height);
+    this.width = size.width;
+    this.height = size.height;
 
     this.headerHeight = 10;
     this.footerHeight = 22;
@@ -189,6 +190,7 @@ export default class PacmanGame {
     this.lives = 3;
     this.gameOver = false;
     this.winLevel = false;
+    this.levelTransitionTimer = 0;
     if (this.callbacks.onScoreChange) this.callbacks.onScoreChange(this.score);
     this.initLevel();
     if (!this.running) this.start();
@@ -197,17 +199,25 @@ export default class PacmanGame {
   loop(timestamp) {
     if (!this.running) return;
     
-    const dt = (timestamp - this.lastTime) / 1000;
+    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
     this.lastTime = timestamp;
     this.time += dt;
 
-    if (!this.gameOver && !this.winLevel) {
+    if (this.winLevel) {
+      this.levelTransitionTimer -= dt;
+      if (this.levelTransitionTimer <= 0) {
+        this.level++;
+        this.initLevel();
+        this.winLevel = false;
+        this.callbacks.onStateChange?.();
+      }
+    } else if (!this.gameOver) {
       this.update(dt);
     }
     
     this.draw();
 
-    requestAnimationFrame((t) => this.loop(t));
+    this.rafId = requestAnimationFrame((time) => this.loop(time));
   }
   
   isValidMove(x, y, dx, dy) {
@@ -375,11 +385,7 @@ export default class PacmanGame {
         
         if (this.pelletsCount <= 0) {
           this.winLevel = true;
-          setTimeout(() => {
-            this.level++;
-            this.initLevel();
-            this.winLevel = false;
-          }, 2000);
+          this.levelTransitionTimer = 2;
         }
       }
     }
@@ -396,6 +402,7 @@ export default class PacmanGame {
         } else {
           // Die
           this.lives--;
+          this.callbacks.onStateChange?.();
           if (this.lives <= 0) {
             this.gameOver = true;
             if (this.callbacks.onGameOver) this.callbacks.onGameOver(this.score);

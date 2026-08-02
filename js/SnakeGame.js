@@ -1,3 +1,5 @@
+import { configureCanvas } from './utils/canvas.js';
+
 const lerp = (a, b, t) => a + (b - a) * t;
 
 export default class SnakeGame {
@@ -24,6 +26,7 @@ export default class SnakeGame {
   #food = { x: 0, y: 0 };
   #score = 0;
   #gameOver = false;
+  #initialized = false;
   
   #dirtParticles = [];
   #particles = [];
@@ -35,7 +38,8 @@ export default class SnakeGame {
   }
 
   start() {
-    this.restart();
+    if (this.#rafId !== null) return;
+    if (!this.#initialized) this.restart();
     this.#lastTime = performance.now();
     this.#rafId = requestAnimationFrame((ts) => this.#render(ts));
   }
@@ -48,25 +52,30 @@ export default class SnakeGame {
   }
 
   resize(width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    this.#canvas.width = width * dpr;
-    this.#canvas.height = height * dpr;
-    this.#canvas.style.width = width + 'px';
-    this.#canvas.style.height = height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
-    
-    this.#logicalWidth = width;
-    this.#logicalHeight = height;
+    const oldHead = this.#snake[0] ? { ...this.#snake[0] } : null;
+    const size = configureCanvas(this.#canvas, this.#ctx, width, height);
+    this.#logicalWidth = size.width;
+    this.#logicalHeight = size.height;
 
     this.#cellSize = 18;
-    this.#gridW = Math.floor(width / this.#cellSize);
-    this.#gridH = Math.floor((height - 40) / this.#cellSize);
+    this.#gridW = Math.max(6, Math.floor(size.width / this.#cellSize));
+    this.#gridH = Math.max(6, Math.floor((size.height - 40) / this.#cellSize));
     
-    this.#offsetX = (width - this.#gridW * this.#cellSize) / 2;
-    this.#offsetY = 40 + (height - 40 - this.#gridH * this.#cellSize) / 2;
+    this.#offsetX = (size.width - this.#gridW * this.#cellSize) / 2;
+    this.#offsetY = 40 + (size.height - 40 - this.#gridH * this.#cellSize) / 2;
+
+    if (oldHead && this.#initialized) {
+      const target = { x: Math.floor(this.#gridW / 2), y: Math.floor(this.#gridH / 2) };
+      const translate = (part) => ({
+        x: Math.max(0, Math.min(this.#gridW - 1, target.x + part.x - oldHead.x)),
+        y: Math.max(0, Math.min(this.#gridH - 1, target.y + part.y - oldHead.y))
+      });
+      this.#snake = this.#snake.map(translate);
+      this.#prevSnake = this.#prevSnake.map(translate);
+      if (this.#food.x >= this.#gridW || this.#food.y >= this.#gridH) this.#spawnFood();
+    }
     
-    this.#generateDirt(width, height);
+    this.#generateDirt(size.width, size.height);
   }
 
   onDirection(dir, pressed) {
@@ -117,6 +126,7 @@ export default class SnakeGame {
     this.#gameOver = false;
     this.#particles = [];
     this.#timeSinceLastTick = 0;
+    this.#initialized = true;
 
     if (this.#callbacks.onScoreChange) {
       this.#callbacks.onScoreChange(this.#score);

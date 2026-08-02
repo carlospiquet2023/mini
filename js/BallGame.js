@@ -18,7 +18,9 @@ export default class BallGame {
   // Game state
   #balls = [];
   #holes = [];
+  #boundaries = [];
   #bubbles = [];
+  #shrinkAnimations = new Map();
   #score = 0;
   #buttonAPressed = false;
   #buttonBPressed = false;
@@ -64,7 +66,7 @@ export default class BallGame {
     if (this.#active) return;
     this.#active = true;
 
-    const { Engine, Render, Runner, World, Events } = Matter;
+    const { Engine, Render, Runner, Events } = Matter;
 
     if (this.#engine) {
       this.#runner = Runner.run(this.#engine);
@@ -94,6 +96,7 @@ export default class BallGame {
         background: 'transparent'
       }
     });
+    this.#configureRender();
 
     this.#canvas.style.backgroundColor = 'transparent';
 
@@ -128,6 +131,9 @@ export default class BallGame {
   stop() {
     if (!this.#active) return;
     this.#active = false;
+    this.#buttonAPressed = false;
+    this.#buttonBPressed = false;
+    this.#clearShrinkAnimations();
 
     const { Runner, Render } = Matter;
 
@@ -137,9 +143,11 @@ export default class BallGame {
 
   restart() {
     const { World } = Matter;
+    this.#clearShrinkAnimations();
     World.clear(this.#world);
     this.#balls = [];
     this.#holes = [];
+    this.#boundaries = [];
     this.#bubbles = [];
     this.#score = 0;
     this.#winTriggered = false;
@@ -152,9 +160,51 @@ export default class BallGame {
   }
 
   resize(width, height) {
-    this.#W = width;
-    this.#H = height;
-    this.#resizeCanvas();
+    const nextWidth = Math.max(1, Math.round(width));
+    const nextHeight = Math.max(1, Math.round(height));
+    if (nextWidth === this.#W && nextHeight === this.#H) return;
+
+    const oldWidth = this.#W || nextWidth;
+    const oldHeight = this.#H || nextHeight;
+    this.#W = nextWidth;
+    this.#H = nextHeight;
+    this.#canvas.style.width = `${nextWidth}px`;
+    this.#canvas.style.height = `${nextHeight}px`;
+
+    if (!this.#engine) return;
+
+    const { Body, World } = Matter;
+    const scaleX = nextWidth / oldWidth;
+    const scaleY = nextHeight / oldHeight;
+
+    this.#clearShrinkAnimations();
+    for (const ball of this.#balls) {
+      if (ball.isScored) continue;
+      const radius = ball.circleRadius || 16;
+      Body.setPosition(ball, {
+        x: Math.max(radius, Math.min(nextWidth - radius, ball.position.x * scaleX)),
+        y: Math.max(radius, Math.min(nextHeight - radius, ball.position.y * scaleY))
+      });
+      Body.setVelocity(ball, {
+        x: ball.velocity.x * Math.min(scaleX, 1.25),
+        y: ball.velocity.y * Math.min(scaleY, 1.25)
+      });
+    }
+
+    this.#bubbles = this.#bubbles.map((bubble) => ({
+      ...bubble,
+      x: bubble.x * scaleX,
+      y: bubble.y * scaleY
+    }));
+    this.#fish.x *= scaleX;
+    this.#fish.y *= scaleY;
+
+    World.remove(this.#world, this.#boundaries);
+    for (const hole of this.#holes) World.remove(this.#world, [hole.body, hole.sensor]);
+    this.#boundaries = [];
+    this.#holes = [];
+    this.#setupArena();
+    this.#configureRender();
   }
 
   onButtonADown() {
@@ -177,17 +227,22 @@ export default class BallGame {
   // ==========================================
 
   #resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
     const rect = this.#container.getBoundingClientRect();
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
+    this.#canvas.style.width = `${width}px`;
+    this.#canvas.style.height = `${height}px`;
+    return { width, height };
+  }
 
-    this.#canvas.width = rect.width * dpr;
-    this.#canvas.height = rect.height * dpr;
-    this.#canvas.style.width = rect.width + 'px';
-    this.#canvas.style.height = rect.height + 'px';
-
-    this.#ctx.scale(dpr, dpr);
-
-    return { width: rect.width, height: rect.height };
+  #configureRender() {
+    if (!this.#render) return;
+    const { Render } = Matter;
+    this.#render.options.width = this.#W;
+    this.#render.options.height = this.#H;
+    this.#render.bounds.max.x = this.#W;
+    this.#render.bounds.max.y = this.#H;
+    Render.setPixelRatio(this.#render, Math.min(window.devicePixelRatio || 1, 2));
   }
 
   #setupGame() {
@@ -195,40 +250,7 @@ export default class BallGame {
     const W = this.#W;
     const H = this.#H;
 
-    // Extra thick solid walls & ceiling to prevent physics tunneling on mobile
-    const wallOpts = { isStatic: true, restitution: 0.5, render: { visible: false } };
-
-    World.add(this.#world, [
-      // Floor (bottom)
-      Bodies.rectangle(W / 2, H + 75, W + 300, 150, wallOpts),
-      // Ceiling (top)
-      Bodies.rectangle(W / 2, -75, W + 300, 150, wallOpts),
-      // Left Wall
-      Bodies.rectangle(-75, H / 2, 150, H + 300, wallOpts),
-      // Right Wall
-      Bodies.rectangle(W + 75, H / 2, 150, H + 300, wallOpts),
-    ]);
-
-    // Holes
-    const holeRadius = 22;
-    const holeY = H * 0.15;
-    const holeSpacing = W * 0.25;
-
-    const createHole = (x) => {
-      const visual = Bodies.circle(x, holeY, holeRadius, {
-        isStatic: true, isSensor: true, label: 'hole-visual',
-        render: { fillStyle: '#000000', strokeStyle: '#1e293b', lineWidth: 5 }
-      });
-      const sensor = Bodies.circle(x, holeY, holeRadius + 3, {
-        isStatic: true, isSensor: true, label: 'hole-sensor',
-        render: { visible: false }
-      });
-      World.add(this.#world, [visual, sensor]);
-      return { body: visual, sensor, scoredBalls: 0, cooldown: 0, x, y: holeY };
-    };
-
-    this.#holes.push(createHole(holeSpacing));
-    this.#holes.push(createHole(W - holeSpacing));
+    this.#setupArena();
 
     // Balls
     const ballRadius = 16;
@@ -253,6 +275,48 @@ export default class BallGame {
       this.#balls.push(ball);
     }
     World.add(this.#world, this.#balls);
+  }
+
+  #setupArena() {
+    const { Bodies, World } = Matter;
+    const W = this.#W;
+    const H = this.#H;
+
+    // Extra thick solid walls & ceiling to prevent physics tunneling on mobile
+    const wallOpts = { isStatic: true, restitution: 0.5, render: { visible: false } };
+
+    this.#boundaries = [
+      // Floor (bottom)
+      Bodies.rectangle(W / 2, H + 75, W + 300, 150, wallOpts),
+      // Ceiling (top)
+      Bodies.rectangle(W / 2, -75, W + 300, 150, wallOpts),
+      // Left Wall
+      Bodies.rectangle(-75, H / 2, 150, H + 300, wallOpts),
+      // Right Wall
+      Bodies.rectangle(W + 75, H / 2, 150, H + 300, wallOpts),
+    ];
+    World.add(this.#world, this.#boundaries);
+
+    // Holes
+    const holeRadius = 22;
+    const holeY = H * 0.15;
+    const holeSpacing = W * 0.25;
+
+    const createHole = (x) => {
+      const visual = Bodies.circle(x, holeY, holeRadius, {
+        isStatic: true, isSensor: true, label: 'hole-visual',
+        render: { fillStyle: '#000000', strokeStyle: '#1e293b', lineWidth: 5 }
+      });
+      const sensor = Bodies.circle(x, holeY, holeRadius + 3, {
+        isStatic: true, isSensor: true, label: 'hole-sensor',
+        render: { visible: false }
+      });
+      World.add(this.#world, [visual, sensor]);
+      return { body: visual, sensor, scoredBalls: 0, cooldown: 0, x, y: holeY };
+    };
+
+    this.#holes.push(createHole(holeSpacing));
+    this.#holes.push(createHole(W - holeSpacing));
   }
 
   #jetAir(originX) {
@@ -585,6 +649,7 @@ export default class BallGame {
       scale -= 0.1;
       if (scale <= 0) {
         clearInterval(shrink);
+        this.#shrinkAnimations.delete(shrink);
         World.remove(this.#world, ball);
       } else {
         Body.setPosition(ball, {
@@ -594,5 +659,16 @@ export default class BallGame {
         Body.scale(ball, 0.9, 0.9);
       }
     }, 30);
+    this.#shrinkAnimations.set(shrink, ball);
+  }
+
+  #clearShrinkAnimations() {
+    if (!this.#world) return;
+    const { World } = Matter;
+    for (const [timer, ball] of this.#shrinkAnimations) {
+      clearInterval(timer);
+      World.remove(this.#world, ball);
+    }
+    this.#shrinkAnimations.clear();
   }
 }

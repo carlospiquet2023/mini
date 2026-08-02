@@ -1,3 +1,5 @@
+import { configureCanvas } from './utils/canvas.js';
+
 export default class TetrisGame {
   constructor(canvas, ctx, callbacks = {}) {
     this.canvas = canvas;
@@ -58,6 +60,7 @@ export default class TetrisGame {
     this.keys = Object.keys(this.tetrominoes);
 
     this.isRunning = false;
+    this.rafId = null;
     this.lastTime = 0;
     this.resize(canvas.width, canvas.height);
     
@@ -114,12 +117,16 @@ export default class TetrisGame {
     if (!this.isRunning) {
       this.isRunning = true;
       this.lastTime = performance.now();
-      requestAnimationFrame(this.loop.bind(this));
+      this.rafId = requestAnimationFrame((timestamp) => this.loop(timestamp));
     }
   }
 
   stop() {
     this.isRunning = false;
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
   }
 
   restart() {
@@ -128,16 +135,9 @@ export default class TetrisGame {
   }
 
   resize(width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = width * dpr;
-    this.canvas.height = height * dpr;
-    this.canvas.style.width = width + 'px';
-    this.canvas.style.height = height + 'px';
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.scale(dpr, dpr);
-
-    this.width = width;
-    this.height = height;
+    const size = configureCanvas(this.canvas, this.ctx, width, height);
+    this.width = size.width;
+    this.height = size.height;
 
     const marginTop = 6;
     const padding = 6;
@@ -335,25 +335,13 @@ export default class TetrisGame {
 
   loop(timestamp) {
     if (!this.isRunning) return;
-    const dt = (timestamp - this.lastTime) / 1000;
+    const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
     this.lastTime = timestamp;
 
     this.update(dt);
     this.draw();
 
-    requestAnimationFrame((t) => this.loop(t));
-  }
-
-  start() {
-    if (!this.isRunning) {
-      this.isRunning = true;
-      this.lastTime = performance.now();
-      requestAnimationFrame((t) => this.loop(t));
-    }
-  }
-
-  stop() {
-    this.isRunning = false;
+    this.rafId = requestAnimationFrame((time) => this.loop(time));
   }
 
   draw() {

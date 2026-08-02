@@ -5,6 +5,8 @@
    Fiery Lava Pits, 5 Enemy Types & 4 Obstacle Types
    =========================================== */
 
+import { configureCanvas } from './utils/canvas.js';
+
 export default class RunnerGame {
   #canvas;
   #ctx;
@@ -14,6 +16,7 @@ export default class RunnerGame {
   #isRunning = false;
   #lastTime = 0;
   #animationFrameId = null;
+  #initialized = false;
   #shakeAmount = 0;
 
   // Physics & World
@@ -141,16 +144,12 @@ export default class RunnerGame {
     if (this.#isRunning) return;
     this.#isRunning = true;
 
-    const dpr = window.devicePixelRatio || 1;
-    this.#canvas.width = this.#width * dpr;
-    this.#canvas.height = this.#height * dpr;
-    this.#canvas.style.width = this.#width + 'px';
-    this.#canvas.style.height = this.#height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
+    configureCanvas(this.#canvas, this.#ctx, this.#width, this.#height);
 
-    this.#initBackground();
-    this.restart();
+    if (!this.#initialized) {
+      this.#initBackground();
+      this.restart();
+    }
 
     this.#lastTime = performance.now();
     this.#gameLoop(this.#lastTime);
@@ -158,6 +157,9 @@ export default class RunnerGame {
 
   stop() {
     this.#isRunning = false;
+    this.#leftPressed = false;
+    this.#rightPressed = false;
+    this.#downPressed = false;
     if (this.#animationFrameId) {
       cancelAnimationFrame(this.#animationFrameId);
       this.#animationFrameId = null;
@@ -187,6 +189,7 @@ export default class RunnerGame {
     this.#coinsList = [];
     this.#powerups = [];
     this.#particles = [];
+    this.#initialized = true;
 
     this.#groundY = this.#height * 0.78;
 
@@ -210,15 +213,9 @@ export default class RunnerGame {
   }
 
   resize(width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    this.#width = width;
-    this.#height = height;
-    this.#canvas.width = width * dpr;
-    this.#canvas.height = height * dpr;
-    this.#canvas.style.width = width + 'px';
-    this.#canvas.style.height = height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
+    const size = configureCanvas(this.#canvas, this.#ctx, width, height);
+    this.#width = size.width;
+    this.#height = size.height;
 
     this.#groundY = this.#height * 0.78;
     this.#initBackground();
@@ -226,6 +223,9 @@ export default class RunnerGame {
       this.#player.y = this.#groundY - this.#player.h;
     }
   }
+
+  get score() { return this.#score; }
+  get lives() { return this.#lives; }
 
   onDirection(dir, pressed) {
     if (this.#state !== 'PLAYING') {
@@ -400,6 +400,7 @@ export default class RunnerGame {
         if (this.#player.y > this.#height + 40) {
           this.#createSquishParticles(this.#player.x, this.#height - 30, '#ef4444');
           this.#lives--;
+          this.#callbacks.onStateChange?.();
           this.#shakeAmount = 22;
 
           if (this.#lives <= 0) {
@@ -658,6 +659,7 @@ export default class RunnerGame {
           this.#shakeAmount = 6;
         } else if (this.#player.invulnerableTimer <= 0) {
           this.#lives--;
+          this.#callbacks.onStateChange?.();
           this.#shakeAmount = 15;
           this.#player.invulnerableTimer = 1.6;
 
@@ -681,6 +683,7 @@ export default class RunnerGame {
             // Must crouch under laser! If standing, take damage!
             if (!this.#player.isCrouching) {
               this.#lives--;
+              this.#callbacks.onStateChange?.();
               this.#shakeAmount = 15;
               this.#player.invulnerableTimer = 1.5;
               if (this.#lives <= 0) {
@@ -695,6 +698,7 @@ export default class RunnerGame {
             this.#player.jumpsLeft = 2;
           } else if (!this.#player.isCrouching) {
             this.#lives--;
+            this.#callbacks.onStateChange?.();
             this.#shakeAmount = 15;
             this.#player.invulnerableTimer = 1.5;
             if (this.#lives <= 0) {

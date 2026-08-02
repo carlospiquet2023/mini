@@ -1,91 +1,37 @@
-/* ===========================================
-   ThemeManager — Dynamic Theme Transitions
-   Uses View Transitions API (2026) + CSS vars
-   =========================================== */
+const THEME_COLORS = {
+  default: '#3b82f6',
+  worm: '#2d5016',
+  space: '#312e81',
+  pacman: '#854d0e',
+  tetris: '#0e7490',
+  runner: '#0369a1',
+  mermaid: '#6b21a8'
+};
 
+/** Applies visual themes synchronously so game switching cannot race. */
 export default class ThemeManager {
   #currentTheme = 'default';
-  #body;
-  #flashEl;
+  #body = document.body;
+  #flashElement;
+  #themeMeta = document.querySelector('meta[name="theme-color"]');
 
-  /** @param {HTMLElement} flashEl - The screen flash overlay element */
-  constructor(flashEl) {
-    this.#body = document.body;
-    this.#flashEl = flashEl;
+  constructor(flashElement) {
+    this.#flashElement = flashElement;
   }
 
   get current() {
     return this.#currentTheme;
   }
 
-  /**
-   * Transition to a new theme with visual effects
-   * @param {'default' | 'worm' | 'space'} themeName
-   * @returns {Promise<void>}
-   */
-  async setTheme(themeName) {
-    if (themeName === this.#currentTheme) return;
+  setTheme(themeName) {
+    if (!THEME_COLORS[themeName] || themeName === this.#currentTheme) return;
 
-    // Try View Transitions API (2025+)
-    if (document.startViewTransition) {
-      await document.startViewTransition(() => {
-        this.#applyTheme(themeName);
-      }).finished;
-    } else {
-      // Fallback: manual flash animation
-      await this.#flashTransition(themeName);
-    }
-  }
-
-  /**
-   * Apply theme with flash effect (fallback)
-   * @param {string} themeName
-   * @returns {Promise<void>}
-   */
-  #flashTransition(themeName) {
-    return new Promise(resolve => {
-      // Trigger flash
-      this.#flashEl.classList.add('active');
-
-      // Apply theme mid-flash
-      setTimeout(() => {
-        this.#applyTheme(themeName);
-      }, 80);
-
-      // Clean up after animation
-      const onEnd = () => {
-        this.#flashEl.classList.remove('active');
-        this.#flashEl.removeEventListener('animationend', onEnd);
-        resolve();
-      };
-
-      this.#flashEl.addEventListener('animationend', onEnd);
-
-      // Safety timeout
-      setTimeout(() => {
-        this.#flashEl.classList.remove('active');
-        resolve();
-      }, 700);
-    });
-  }
-
-  /**
-   * Apply theme CSS variables
-   * @param {string} themeName
-   */
-  #applyTheme(themeName) {
-    this.#body.dataset.theme = themeName;
     this.#currentTheme = themeName;
+    this.#body.dataset.theme = themeName;
+    if (this.#themeMeta) this.#themeMeta.content = THEME_COLORS[themeName];
 
-    // Update meta theme-color for mobile browser
-    const metaTheme = document.querySelector('meta[name="theme-color"]');
-    if (metaTheme) {
-      const colors = {
-        default: '#3b82f6',
-        worm: '#2d5016',
-        space: '#1e1b4b'
-      };
-      metaTheme.content = colors[themeName] ?? '#3b82f6';
-    }
+    this.#flashElement.classList.remove('active');
+    void this.#flashElement.offsetWidth;
+    this.#flashElement.classList.add('active');
   }
 }

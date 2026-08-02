@@ -5,6 +5,8 @@
    Flowing Hair, Pearl Collections & High-Def Sprites
    =========================================== */
 
+import { configureCanvas } from './utils/canvas.js';
+
 export default class MermaidGame {
   #canvas;
   #ctx;
@@ -14,6 +16,7 @@ export default class MermaidGame {
   #isRunning = false;
   #lastTime = 0;
   #animationFrameId = null;
+  #initialized = false;
   #shakeAmount = 0;
 
   // Game Constants
@@ -124,16 +127,12 @@ export default class MermaidGame {
     if (this.#isRunning) return;
     this.#isRunning = true;
 
-    const dpr = window.devicePixelRatio || 1;
-    this.#canvas.width = this.#width * dpr;
-    this.#canvas.height = this.#height * dpr;
-    this.#canvas.style.width = this.#width + 'px';
-    this.#canvas.style.height = this.#height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
+    configureCanvas(this.#canvas, this.#ctx, this.#width, this.#height);
 
-    this.#initOceanWorld();
-    this.restart();
+    if (!this.#initialized) {
+      this.#initOceanWorld();
+      this.restart();
+    }
 
     this.#lastTime = performance.now();
     this.#gameLoop(this.#lastTime);
@@ -141,6 +140,10 @@ export default class MermaidGame {
 
   stop() {
     this.#isRunning = false;
+    this.#upPressed = false;
+    this.#downPressed = false;
+    this.#leftPressed = false;
+    this.#rightPressed = false;
     if (this.#animationFrameId) {
       cancelAnimationFrame(this.#animationFrameId);
       this.#animationFrameId = null;
@@ -177,24 +180,23 @@ export default class MermaidGame {
     this.#obstacles = [];
     this.#powerups = [];
     this.#particles = [];
+    this.#initialized = true;
 
     this.#spawnPearl();
     if (this.#callbacks.onScoreChange) this.#callbacks.onScoreChange(this.#score);
   }
 
   resize(width, height) {
-    const dpr = window.devicePixelRatio || 1;
-    this.#width = width;
-    this.#height = height;
-    this.#canvas.width = width * dpr;
-    this.#canvas.height = height * dpr;
-    this.#canvas.style.width = width + 'px';
-    this.#canvas.style.height = height + 'px';
-    this.#ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.#ctx.scale(dpr, dpr);
+    const size = configureCanvas(this.#canvas, this.#ctx, width, height);
+    this.#width = size.width;
+    this.#height = size.height;
 
     this.#initOceanWorld();
   }
+
+  get score() { return this.#score; }
+  get level() { return this.#level; }
+  get lives() { return this.#lives; }
 
   onDirection(dir, pressed) {
     if (this.#state !== 'PLAYING') {
@@ -430,6 +432,7 @@ export default class MermaidGame {
         // Level Up Check
         if (this.#pearlsCollected >= this.#levelGoal) {
           this.#level++;
+          this.#callbacks.onStateChange?.();
           this.#pearlsCollected = 0;
           this.#levelGoal += 4;
           this.#speed += 25;
@@ -444,6 +447,7 @@ export default class MermaidGame {
         const dist = Math.hypot(this.#player.x - obs.x, this.#player.y - obs.y);
         if (dist < this.#player.r + obs.r) {
           this.#lives--;
+          this.#callbacks.onStateChange?.();
           this.#shakeAmount = 16;
           this.#invulnerableTimer = 1.6;
 
